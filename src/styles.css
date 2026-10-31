@@ -1,49 +1,29 @@
-/* Índice: cuadrícula de plano. Cada caso redefine el ambiente con data-juego. */
+/* Estilo "gabinete ilustrado": madera oscura, pergamino y ocres.
+   Cada caso puede ajustar el acento con data-juego. */
 :root {
-  color-scheme: light;
-  --paper: #efe9d8;
-  --ink: #15365c;
-  --ink-soft: #3f5f82;
-  --rule: #7fa0c4;
-  --accent: #b5452b;
-  --chip: #e6eef7;
-  --grid: rgba(21,54,92,.07);
-  --mono: "IBM Plex Mono", ui-monospace, monospace;
-  --sans: "IBM Plex Sans", system-ui, sans-serif;
-  --serif: Spectral, Georgia, serif;
-  --display: "IBM Plex Sans", system-ui, sans-serif;
-  --fondo-extra: none;
-}
-/* 01 · Relojería: latón, nogal oscuro, esfera de reloj */
-:root[data-juego="01"] {
   color-scheme: dark;
-  --paper: #1c1711;
-  --ink: #f2e6c9;
-  --ink-soft: #b9a57a;
-  --rule: #6d5a34;
-  --accent: #d2a54b;
-  --chip: #2a2118;
+  --paper: #1d1410;        /* fondo: madera oscura */
+  --ink: #f8ecd2;          /* texto sobre madera */
+  --ink-soft: #cdb58a;     /* texto secundario */
+  --rule: #7d6242;         /* filetes */
+  --accent: #d9a441;       /* oro */
+  --vino: #7a1f2e;         /* acción principal */
+  --chip: #2a1d16;         /* superficie elevada */
+  --parch: #f1e3c4;        /* pergamino (tarjetas) */
+  --parch-2: #e7d3a6;
+  --parch-ink: #2a1b12;
+  --parch-rule: #b08a4e;
   --grid: transparent;
-  --mono: "IBM Plex Mono", ui-monospace, monospace;
-  --serif: Spectral, Georgia, serif;
-  --display: Cinzel, Georgia, serif;
-  --fondo-extra: repeating-radial-gradient(circle at 50% -10%, transparent 0 58px, rgba(210,165,75,.05) 58px 59px);
+  --mono: "Lora", Georgia, serif;
+  --sans: "Lora", Georgia, serif;
+  --serif: "Lora", Georgia, serif;
+  --display: "Cormorant Garamond", Georgia, serif;
+  --fondo-extra: radial-gradient(900px 500px at 50% -120px, #4a2a1a 0, transparent 70%);
 }
-/* 02 · Faro: mar de noche, tinta de carta náutica */
-:root[data-juego="02"] {
-  color-scheme: dark;
-  --paper: #0c2230;
-  --ink: #e4eef0;
-  --ink-soft: #8fb2bd;
-  --rule: #2a5468;
-  --accent: #f0b64a;
-  --chip: #123046;
-  --grid: transparent;
-  --mono: "IBM Plex Mono", ui-monospace, monospace;
-  --serif: Spectral, Georgia, serif;
-  --display: "IBM Plex Sans", system-ui, sans-serif;
-  --fondo-extra: repeating-linear-gradient(0deg, transparent 0 22px, rgba(143,178,189,.05) 22px 23px);
-}
+/* 01 · Relojería: latón y nogal. */
+:root[data-juego="01"] { --accent: #e0b25a; --fondo-extra: radial-gradient(900px 500px at 50% -120px, #5a3a22 0, transparent 70%), repeating-radial-gradient(circle at 50% -10%, transparent 0 58px, rgba(217,164,65,.06) 58px 59px); }
+/* 02 · Faro: madera con reflejos de mar en cobre. */
+:root[data-juego="02"] { --accent: #c9793f; --fondo-extra: radial-gradient(900px 500px at 50% -120px, #3a2a22 0, transparent 70%), repeating-linear-gradient(0deg, transparent 0 22px, rgba(201,121,63,.05) 22px 23px); }
 * { box-sizing: border-box; }
 body {
   margin: 0; min-height: 100%; color: var(--ink); font: 1rem/1.55 var(--sans);
