@@ -230,13 +230,13 @@ function formCuenta() {
 }
 function wireCuenta() {
   const clic = (id, fn) => { const e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
-  clic('ir-registro', () => { vistaCuenta = 'registro'; avisoCuenta = ''; menu(); });
-  clic('ir-entrar', () => { vistaCuenta = 'entrar'; avisoCuenta = ''; menu(); });
-  clic('cancelar-cuenta', () => { vistaCuenta = ''; menu(); });
+  clic('ir-registro', () => { vistaCuenta = 'registro'; avisoCuenta = ''; volverCuenta(); });
+  clic('ir-entrar', () => { vistaCuenta = 'entrar'; avisoCuenta = ''; volverCuenta(); });
+  clic('cancelar-cuenta', () => { vistaCuenta = ''; volverCuenta(); });
   clic('salir-cuenta', async e => {
     e.target.disabled = true;
     try { await salirCuenta(); cuenta = null; avisoCuenta = ''; vistaCuenta = ''; menu(); }
-    catch (x) { e.target.disabled = false; avisoCuenta = x.message; menu(); }
+    catch (x) { e.target.disabled = false; avisoCuenta = x.message; volverCuenta(); }
   });
   const f = document.getElementById('form-cuenta');
   if (!f) return;
@@ -261,7 +261,7 @@ function wireCuenta() {
       }
       vistaCuenta = '';
       cuenta = await usuario();
-      menu();
+      volverCuenta();
     } catch (x) { enviar.disabled = false; msg.textContent = x.message; }
   });
 }
@@ -299,9 +299,19 @@ function irA(ruta) {
 window.addEventListener('popstate', () => irA(rutaDe(location.hash)));
 
 /* ---------- Índice ---------- */
+let busquedaCasos = '';         // texto del buscador de casos
+let estadoCasos = 'todos';      // filtro de estado del índice
+let volverCuenta = () => menu(); // a dónde volver tras una acción de cuenta (expediente o índice)
+const quita = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const GRUPOS = [
+  ['curso', 'En curso', true], ['sin', 'Sin empezar', true],
+  ['resuelto', 'Resueltos', false], ['bloqueado', 'Pendientes de validar', false],
+];
+
 async function menu() {
   cerrarAlarma();
   marcarRuta('');
+  volverCuenta = () => menu();
   actual = null; estado = null; aviso = ''; armado = false; mapaAbierto = false;
   document.documentElement.removeAttribute('data-juego');
   document.documentElement.removeAttribute('data-caso');
@@ -309,34 +319,51 @@ async function menu() {
   try { misCasos = await api.misCasos(); cuenta = await usuario(); } catch (e) { pantallaError(e.message, menu); return; }
   const r = resumen();
   const nombre = cuenta && !cuenta.anonimo ? (cuenta.alias || cuenta.email) : 'Invitado';
+  const tarjetas = CASOS.map((j, i) => {
+    const f = r.filas[i];
+    const hecho = f.resueltas > 0;
+    const estadoCaso = !f.validado ? 'bloqueado' : hecho ? 'resuelto' : f.enCurso ? 'curso' : 'sin';
+    const texto = quita(`${j.premisa.titulo} ${j.premisa.descripcion}`);
+    const numero = String(i + 1).padStart(2, '0');
+    if (!f.validado) {
+      return { estado: estadoCaso, html: `<button class="hoja-caso bloqueado" data-id="${esc(j.premisa.id)}" data-texto="${esc(texto)}" disabled aria-disabled="true" aria-label="Hoja ${numero}: caso bloqueado, pendiente de validar">
+        <span class="sello-ok bloq" aria-hidden="true">Bloqueado</span>
+        <span class="rot est">Hoja ${numero} · Pendiente de validar</span>
+        <span class="t" aria-hidden="true">${esc(j.premisa.titulo)}</span>
+        <span class="d" aria-hidden="true">${esc(j.premisa.descripcion)}</span></button>` };
+    }
+    const est = hecho ? 'Resuelto' : f.enCurso ? `En curso · sala ${f.enCurso.salas_resueltas + 1} de ${f.salas} · ${fmt(f.msCurso)}` : 'Sin empezar';
+    return { estado: estadoCaso, html: `<button class="hoja-caso${hecho ? ' completo' : ''}" data-id="${esc(j.premisa.id)}" data-texto="${esc(texto)}">
+        ${hecho ? '<span class="sello-ok" aria-hidden="true">Completado</span>' : ''}
+        <span class="rot est">Hoja ${numero} · ${esc(est)}</span>
+        <span class="t">${esc(j.premisa.titulo)}</span>
+        <span class="d">${esc(j.premisa.descripcion)}</span>
+        ${f.mejor !== null ? `<span class="rot" style="margin-top:4px">Mejor partida ${fmt(f.mejor)} · ${f.resueltas} ${f.resueltas === 1 ? 'resuelta' : 'resueltas'}</span>` : ''}</button>` };
+  });
   APP.innerHTML = `<div class="hoja">
-    <header class="cabecera"><p class="marca-juego">Salas Secretas</p>
+    <header class="cabecera">
+      <p class="marca-juego">Salas Secretas</p>
+      <p class="bienvenida">Bienvenido, <b>${esc(nombre)}</b></p>
       <button class="ghost btn-perfil" id="ir-perfil" type="button" aria-label="Abrir tu expediente: perfil, estadísticas, ranking y trofeos">
-        <span class="avatar" aria-hidden="true">${esc(inicial(nombre))}</span>Mi expediente</button></header>
+        <span class="avatar" aria-hidden="true">${esc(inicial(nombre))}</span><span class="etq-perfil">Mi expediente</span></button></header>
     <div class="cajetin">
       <div><h1>Elige un caso</h1>
         <p class="texto" style="margin-top:8px;color:var(--ink-soft)">Cuatro salas por caso y 30 minutos para resolverlo. El avance y el tiempo se guardan en tu cuenta.</p></div>
       <div class="sello"><b>${r.pctGlobal}%</b>${r.totRes}/${r.totSalas} salas</div>
     </div>
-    ${barraCuenta()}
-    <div class="indice">${CASOS.map((j, i) => {
-      const f = r.filas[i];
-      const hecho = f.resueltas > 0;
-      if (!f.validado) {
-        return `<button class="hoja-caso bloqueado" data-id="${esc(j.premisa.id)}" disabled aria-disabled="true" aria-label="Hoja ${String(i + 1).padStart(2, '0')}: caso bloqueado, pendiente de validar">
-        <span class="sello-ok bloq" aria-hidden="true">Bloqueado</span>
-        <span class="rot est">Hoja ${String(i + 1).padStart(2, '0')} · Pendiente de validar</span>
-        <span class="t" aria-hidden="true">${esc(j.premisa.titulo)}</span>
-        <span class="d" aria-hidden="true">${esc(j.premisa.descripcion)}</span></button>`;
-      }
-      const est = hecho ? 'Resuelto' : f.enCurso ? `En curso · sala ${f.enCurso.salas_resueltas + 1} de ${f.salas} · ${fmt(f.msCurso)}` : 'Sin empezar';
-      return `<button class="hoja-caso${hecho ? ' completo' : ''}" data-id="${esc(j.premisa.id)}">
-        ${hecho ? '<span class="sello-ok" aria-hidden="true">Completado</span>' : ''}
-        <span class="rot est">Hoja ${String(i + 1).padStart(2, '0')} · ${esc(est)}</span>
-        <span class="t">${esc(j.premisa.titulo)}</span>
-        <span class="d">${esc(j.premisa.descripcion)}</span>
-        ${f.mejor !== null ? `<span class="rot" style="margin-top:4px">Mejor partida ${fmt(f.mejor)} · ${f.resueltas} ${f.resueltas === 1 ? 'resuelta' : 'resueltas'}</span>` : ''}</button>`;
-    }).join('')}</div></div>`;
+    <div class="filtros-casos" role="search">
+      <label class="sr" for="buscar-caso">Buscar caso</label>
+      <input id="buscar-caso" type="search" placeholder="Buscar por título o tema" autocomplete="off" value="${esc(busquedaCasos)}">
+      <label class="sr" for="estado-caso">Filtrar por estado</label>
+      <select id="estado-caso">${[['todos', 'Todos los estados'], ['curso', 'En curso'], ['sin', 'Sin empezar'], ['resuelto', 'Resueltos'], ['bloqueado', 'Pendientes de validar']]
+        .map(([v, t]) => `<option value="${v}" ${estadoCasos === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    </div>
+    <p class="small" id="contador-casos" style="margin-top:10px" aria-live="polite"></p>
+    ${GRUPOS.map(([id, t, abierto]) => `<details class="grupo" data-grupo="${id}"${abierto ? ' open' : ''}>
+      <summary>${t} <span class="n">0</span></summary>
+      <div class="indice">${tarjetas.filter(c => c.estado === id).map(c => c.html).join('')}</div></details>`).join('')}
+    <p class="sin-resultados" id="sin-casos" hidden>Ningún caso coincide con la búsqueda.</p>
+  </div>`;
   entradaHoja();
   APP.querySelectorAll('.hoja-caso:not([disabled])').forEach(b => b.addEventListener('click', () => {
     midiendo = false;
@@ -344,7 +371,32 @@ async function menu() {
     salir(() => jugar(jj));
   }));
   document.getElementById('ir-perfil').addEventListener('click', () => salir(() => { entrar = true; perfil(); }));
-  wireCuenta();
+  APP.querySelector('#buscar-caso').addEventListener('input', e => { busquedaCasos = e.target.value; aplicarFiltrosCasos(); });
+  APP.querySelector('#estado-caso').addEventListener('change', e => { estadoCasos = e.target.value; aplicarFiltrosCasos(); });
+  aplicarFiltrosCasos();
+}
+
+/* Filtra por texto y por estado sin repintar: los grupos vacíos se ocultan y los que tienen coincidencias se abren al buscar. */
+function aplicarFiltrosCasos() {
+  const q = quita(busquedaCasos.trim());
+  let total = 0;
+  APP.querySelectorAll('.grupo').forEach(g => {
+    const grupoOk = estadoCasos === 'todos' || g.dataset.grupo === estadoCasos;
+    let n = 0;
+    g.querySelectorAll('.hoja-caso').forEach(b => {
+      const ok = grupoOk && (!q || b.dataset.texto.includes(q));
+      b.hidden = !ok;
+      if (ok) n++;
+    });
+    g.querySelector('summary .n').textContent = n;
+    g.hidden = !grupoOk || n === 0;
+    if (q && n) g.open = true;
+    total += n;
+  });
+  const sin = APP.querySelector('#sin-casos');
+  if (sin) sin.hidden = total > 0;
+  const c = APP.querySelector('#contador-casos');
+  if (c) c.textContent = `${total} de ${CASOS.length} casos`;
 }
 
 function inicial(t) { return (String(t || '?').trim()[0] || '?').toUpperCase(); }
@@ -357,9 +409,12 @@ function perfil(pestana) {
   document.documentElement.removeAttribute('data-caso');
   marcarRuta('#/expediente');
   document.title = 'Mi expediente · Salas Secretas';
+  volverCuenta = () => perfil();
   pantallaPerfil(APP, {
     pestana, cuenta, misCasos, casos: CASOS, esc, fmt, inicial,
     medicion: { html: panelMedicion, wire: wireMedicion },
+    cuentaHtml: barraCuenta,
+    conectarCuenta: wireCuenta,
     volver: () => salir(() => { entrar = true; menu(); }),
     alEntrar: entradaHoja,
   });

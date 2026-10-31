@@ -30,7 +30,8 @@ body {
   background-attachment: fixed; -webkit-font-smoothing: antialiased;
   transition: background-color .5s ease;
 }
-.hoja { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding-block: 18px 48px;
+.hoja { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding-bottom: 48px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 18px);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 h1 { font: 700 clamp(1.9rem, 5.6vw, 2.9rem)/1.05 var(--display); margin: 0; text-wrap: balance; letter-spacing: .01em; }
 h2 { font: 700 clamp(1.4rem, 4vw, 1.8rem)/1.15 var(--display); margin: 0; text-wrap: balance; }
@@ -73,10 +74,38 @@ input::placeholder { color: color-mix(in srgb, var(--campo-ink) 55%, transparent
 .barra > span { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ---------- Cabecera del índice ---------- */
-.cabecera { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.marca-juego { font: 700 1.2rem var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0; }
-.btn-perfil { display: inline-flex; align-items: center; gap: 10px; padding: 0 18px 0 6px; min-height: 48px; border-color: var(--rule); }
-.btn-perfil .avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--vino); color: var(--on-primario); font: 700 1.05rem var(--display); }
+.cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 16px; }
+.marca-juego { font: 700 1.1rem var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0; white-space: nowrap; }
+.bienvenida { margin: 0; min-width: 0; justify-self: end; text-align: right; font: 600 .95rem var(--sans); color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bienvenida b { color: var(--ink); font-weight: 700; }
+.btn-perfil { display: inline-flex; align-items: center; gap: 10px; padding: 0 14px 0 4px; min-height: 48px; border-color: var(--rule); white-space: nowrap; }
+.btn-perfil .avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--vino); color: var(--on-primario); font: 700 1.1rem var(--display); }
+@media (min-width: 700px) {
+  .cabecera { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .marca-juego { justify-self: start; }
+  .bienvenida { justify-self: center; text-align: center; font: 700 1.25rem var(--display); color: var(--ink); }
+  .bienvenida b { font-weight: 700; }
+  .btn-perfil { justify-self: end; }
+}
+[hidden] { display: none !important; }
+@media (max-width: 699px) { .etq-perfil { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+
+/* Filtros del índice: búsqueda y estado, con grupos plegables */
+.filtros-casos { display: grid; gap: 10px; margin-top: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 700px) { .filtros-casos { grid-template-columns: minmax(0, 1fr) 260px; } }
+.filtros-casos select { width: 100%; }
+.grupo { margin-top: 14px; }
+.grupo > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 4px; font: 700 .85rem var(--sans); text-transform: uppercase; letter-spacing: .12em; color: var(--ink-soft); border-bottom: 1px solid var(--rule); }
+.grupo > summary::-webkit-details-marker { display: none; }
+.grupo > summary::after { content: "›"; margin-left: auto; font-size: 1.2rem; transition: transform .25s ease; color: var(--accent); }
+.grupo[open] > summary::after { transform: rotate(90deg); }
+.grupo > summary .n { font: 700 .8rem var(--sans); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--rule); }
+.grupo .indice { margin-top: 12px; }
+.sin-resultados { margin: 14px 0 0; color: var(--ink-soft); font-style: italic; }
+
+/* Trofeos plegables */
+.grupo-trofeos > summary { font: 700 1.15rem var(--display); text-transform: none; letter-spacing: .02em; color: var(--ink); }
+.grupo-trofeos > summary .small { font: 400 .9rem var(--sans); }
 
 /* Cartela de cabecera */
 .cajetin { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; }

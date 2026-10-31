@@ -44,7 +44,7 @@ export async function pantallaPerfil(APP, ctx) {
   const invitado = !cuenta || cuenta.anonimo;
   const nombre = invitado ? 'Invitado' : (cuenta.alias || cuenta.email);
   const sub = invitado
-    ? 'Tu progreso vive solo en este navegador. Crea una cuenta en el índice para guardarlo y salir en el ranking.'
+    ? 'Tu progreso vive solo en este navegador. Crea una cuenta más abajo para guardarlo y aparecer en el ranking.'
     : `${esc(cuenta.email || '')}${stats && stats.miembro_desde ? ` · desde ${esc(fecha(stats.miembro_desde))}` : ''}`;
 
   APP.innerHTML = `<div class="hoja">
@@ -53,6 +53,7 @@ export async function pantallaPerfil(APP, ctx) {
       <span class="avatar" aria-hidden="true">${esc(inicial(nombre))}</span>
       <div style="min-width:0"><p class="rot">Expediente</p><h1 style="overflow-wrap:anywhere">${esc(nombre)}</h1>
         <p class="small">${sub}</p></div></section>
+    ${ctx.cuentaHtml()}
     <div class="pestanas" role="tablist" aria-label="Secciones del expediente">
       ${PESTANAS.map(([id, t]) => `<button type="button" role="tab" id="tab-${id}" aria-controls="panel" aria-selected="${pestana === id}" tabindex="${pestana === id ? 0 : -1}" data-tab="${id}">${t}</button>`).join('')}
     </div>
@@ -61,6 +62,7 @@ export async function pantallaPerfil(APP, ctx) {
     </section></div>`;
   ctx.alEntrar();
   conectar(APP, ctx);
+  ctx.conectarCuenta();
 
   if (!stats && !errorStats) {
     try { stats = await rpc('mis_estadisticas'); } catch (e) { errorStats = e.message; }
@@ -213,8 +215,12 @@ function panelTrofeos(ctx) {
       <div><b>${esc(x.t)}</b><p>${esc(x.d)}</p>
         ${ok ? '<p class="sr">Conseguido</p>' : `<div class="prog" role="img" aria-label="Progreso ${Math.min(x.v, x.m)} de ${x.m}"><i style="--p:${Math.min(100, x.v / x.m * 100)}%"></i></div>`}</div></li>`;
   };
-  const ganados = [...lista, ...sellos].filter(x => x.v >= x.m).length;
-  return `<p class="small">${ganados} de ${lista.length + sellos.length} conseguidos.</p>
-    <ul class="trofeos lista">${lista.map(html).join('')}</ul>
-    ${sellos.length ? `<div><h2>Sellos de caso</h2><ul class="trofeos lista" style="margin-top:12px">${sellos.map(html).join('')}</ul></div>` : ''}`;
+  const ganLista = lista.filter(x => x.v >= x.m).length;
+  const ganSellos = sellos.filter(x => x.v >= x.m).length;
+  const grupo = (titulo, items, ganados, abierto) => `<details class="caso-stats grupo-trofeos"${abierto ? ' open' : ''}>
+    <summary><b>${titulo}</b><span class="small">${ganados} de ${items.length} conseguidos</span><span class="flecha" aria-hidden="true">›</span></summary>
+    <ul class="trofeos lista" style="padding:0 14px 14px">${items.map(html).join('')}</ul></details>`;
+  return `<div class="lista" style="gap:12px">
+    ${grupo('Logros', lista, ganLista, true)}
+    ${sellos.length ? grupo('Sellos de caso', sellos, ganSellos, sellos.length <= 4) : ''}</div>`;
 }
