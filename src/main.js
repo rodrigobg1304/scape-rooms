@@ -714,6 +714,20 @@ async function accion(boton, fn) {
     if (boton && boton.isConnected) boton.disabled = false;
   }
 }
+/* Señal visual de acierto o fallo: solo clases CSS, sin tocar el estado de la partida. */
+function reducido() { return Boolean(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+function senal(tipo, msg, texto) {
+  const resp = APP.querySelector('.resp'), nota = APP.querySelector('.anotacion');
+  msg.textContent = texto;
+  msg.classList.toggle('bien', tipo === 'acierto');
+  msg.classList.toggle('mal', tipo === 'fallo');
+  const el = tipo === 'acierto' ? nota : resp;
+  if (!el) return;
+  el.classList.remove('acierto', 'fallo');
+  void el.offsetWidth; // reinicia la animación si se repite
+  el.classList.add(tipo);
+  if (tipo === 'fallo' && navigator.vibrate && !reducido()) { try { navigator.vibrate(60); } catch (x) { /* sin vibración */ } }
+}
 function comprobar() {
   const campo = document.getElementById('r');
   const msg = document.getElementById('msg');
@@ -725,11 +739,13 @@ function comprobar() {
     if (r.correcto) {
       aviso = 'Correcto. Se abre la siguiente sala.';
       aprendido = r.aprende || '';
-      salir(() => { entrar = true; pintar(); });
+      senal('acierto', msg, '¡Correcto! Se abre la siguiente sala.');
+      APP.firstElementChild.inert = true; // nada se puede pulsar mientras se abre la puerta
+      setTimeout(() => salir(() => { entrar = true; pintar(); }), reducido() ? 0 : 520);
     } else if (r.penal_seg > 0) {
-      msg.textContent = `Acusación equivocada: +${Math.round(r.penal_seg / 60)} min. Revisa las frases.`;
+      senal('fallo', msg, `Acusación equivocada: +${Math.round(r.penal_seg / 60)} min. Revisa las frases.`);
     } else {
-      msg.textContent = 'No es esa respuesta. Prueba otra vez o pide una nota.';
+      senal('fallo', msg, 'No es esa respuesta. Prueba otra vez o pide una nota.');
       if (campo.select) campo.select();
     }
   });
