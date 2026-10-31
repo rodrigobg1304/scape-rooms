@@ -266,9 +266,42 @@ function wireCuenta() {
   });
 }
 
+/* ---------- Historial del navegador ----------
+   Cada pantalla deja una entrada en el historial (#/caso/<id>, #/expediente o la raíz),
+   así el botón Atrás del navegador o del móvil vuelve a la pantalla anterior en vez de salir de la web. */
+const HASH_AUTH = /access_token|refresh_token|error_description|error_code/; // enlaces de confirmación de Supabase
+function rutaDe(hash) {
+  const c = /^#\/caso\/([\w-]+)$/.exec(hash);
+  if (c) return { pantalla: 'caso', id: c[1] };
+  if (/^#\/expediente$/.test(hash)) return { pantalla: 'perfil' };
+  return { pantalla: 'indice' };
+}
+function marcarRuta(hash) {
+  if (location.hash === hash) return;
+  const url = hash || location.pathname + location.search;
+  if (HASH_AUTH.test(location.hash)) history.replaceState(null, '', url);
+  else history.pushState(null, '', url);
+}
+function casoJugable(id) {
+  const j = CASOS.find(x => x.premisa.id === id);
+  const m = misCasos.find(x => x.caso === id);
+  return j && (!m || m.validado !== false) ? j : null;
+}
+function irA(ruta) {
+  cerrarAlarma();
+  if (ruta.pantalla === 'caso') {
+    const j = casoJugable(ruta.id);
+    if (j) { if (!actual || actual.premisa.id !== j.premisa.id) salir(() => { entrar = true; jugar(j); }); return; }
+  }
+  if (ruta.pantalla === 'perfil') { salir(() => { entrar = true; perfil(); }); return; }
+  salir(() => { entrar = true; mapaAbierto = false; menu(); });
+}
+window.addEventListener('popstate', () => irA(rutaDe(location.hash)));
+
 /* ---------- Índice ---------- */
 async function menu() {
   cerrarAlarma();
+  marcarRuta('');
   actual = null; estado = null; aviso = ''; armado = false; mapaAbierto = false;
   document.documentElement.removeAttribute('data-juego');
   document.documentElement.removeAttribute('data-caso');
@@ -319,6 +352,10 @@ function inicial(t) { return (String(t || '?').trim()[0] || '?').toUpperCase(); 
 /* ---------- Perfil: expediente, estadísticas, ranking y trofeos ---------- */
 function perfil(pestana) {
   cerrarAlarma();
+  actual = null; estado = null;
+  document.documentElement.removeAttribute('data-juego');
+  document.documentElement.removeAttribute('data-caso');
+  marcarRuta('#/expediente');
   document.title = 'Mi expediente · Salas Secretas';
   pantallaPerfil(APP, {
     pestana, cuenta, misCasos, casos: CASOS, esc, fmt, inicial,
@@ -330,6 +367,7 @@ function perfil(pestana) {
 
 /* ---------- Partida ---------- */
 async function jugar(j) {
+  marcarRuta('#/caso/' + j.premisa.id);
   actual = j;
   relojEnMarcha = false;
   document.documentElement.dataset.juego = j.premisa.tema || '01';
@@ -790,6 +828,14 @@ async function arrancar() {
     return;
   }
   try { await sesion(); } catch (e) { pantallaError(e.message, arrancar); return; }
+  // Entrar por un enlace directo (o recargar) abre la pantalla de la dirección.
+  const ruta = rutaDe(location.hash);
+  if (ruta.pantalla !== 'indice') {
+    try { misCasos = await api.misCasos(); cuenta = await usuario(); } catch (e) { /* menu() lo reintenta */ }
+    const j = ruta.pantalla === 'caso' && casoJugable(ruta.id);
+    if (j) { jugar(j); return; }
+    if (ruta.pantalla === 'perfil') { perfil(); return; }
+  }
   menu();
 }
 arrancar();
