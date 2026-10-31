@@ -2,11 +2,15 @@
 // La URL y la clave anon son públicas por diseño; la seguridad la ponen RLS y las funciones.
 import { createClient } from '@supabase/supabase-js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
-const CLAVE = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Tolera errores al copiar la URL (espacios, barra final, /rest/v1…): solo cuenta el dominio.
+function origen(texto) {
+  try { return new URL(String(texto || '').trim().replace(/^["']|["']$/g, '')).origin; } catch (x) { return ''; }
+}
+const SUPABASE_URL = origen(import.meta.env.VITE_SUPABASE_URL);
+const CLAVE = String(import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-export const configurado = Boolean(URL && CLAVE);
-export const supabase = configurado ? createClient(URL, CLAVE) : null;
+export const configurado = Boolean(SUPABASE_URL && CLAVE);
+export const supabase = configurado ? createClient(SUPABASE_URL, CLAVE) : null;
 
 // Inicia sesión anónima si no hay ninguna. La cuenta se puede vincular a un email más adelante.
 export async function sesion() {
