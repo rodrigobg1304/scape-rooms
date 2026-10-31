@@ -1,6 +1,7 @@
 import './styles.css';
 import CASOS from './data/casos.json';
 import { api, configurado, sesion, usuario, registrar, entrarCuenta, salirCuenta, reenviarConfirmacion, aliasDisponible } from './api.js';
+import { pantallaPerfil } from './perfil.js';
 
 /* Motor de Salas Secretas.
    El navegador solo conoce la portada de cada caso. El contenido de cada sala, las pistas,
@@ -270,18 +271,21 @@ async function menu() {
   cerrarAlarma();
   actual = null; estado = null; aviso = ''; armado = false; mapaAbierto = false;
   document.documentElement.removeAttribute('data-juego');
+  document.documentElement.removeAttribute('data-caso');
   document.title = 'Salas Secretas';
   try { misCasos = await api.misCasos(); cuenta = await usuario(); } catch (e) { pantallaError(e.message, menu); return; }
   const r = resumen();
+  const nombre = cuenta && !cuenta.anonimo ? (cuenta.alias || cuenta.email) : 'Invitado';
   APP.innerHTML = `<div class="hoja">
+    <header class="cabecera"><p class="marca-juego">Salas Secretas</p>
+      <button class="ghost btn-perfil" id="ir-perfil" type="button" aria-label="Abrir tu expediente: perfil, estadísticas, ranking y trofeos">
+        <span class="avatar" aria-hidden="true">${esc(inicial(nombre))}</span>Mi expediente</button></header>
     <div class="cajetin">
       <div><h1>Elige un caso</h1>
         <p class="texto" style="margin-top:8px;color:var(--ink-soft)">Cuatro salas por caso y 30 minutos para resolverlo. El avance y el tiempo se guardan en tu cuenta.</p></div>
       <div class="sello"><b>${r.pctGlobal}%</b>${r.totRes}/${r.totSalas} salas</div>
     </div>
     ${barraCuenta()}
-    <div class="barra"><button class="ghost" id="medir" type="button">${midiendo ? 'Ocultar medición' : 'Ver medición'}</button></div>
-    ${midiendo ? panelMedicion() : ''}
     <div class="indice">${CASOS.map((j, i) => {
       const f = r.filas[i];
       const hecho = f.resueltas > 0;
@@ -306,9 +310,22 @@ async function menu() {
     const jj = CASOS.find(j => j.premisa.id === b.dataset.id);
     salir(() => jugar(jj));
   }));
-  document.getElementById('medir').addEventListener('click', () => { midiendo = !midiendo; menu(); });
-  wireMedicion();
+  document.getElementById('ir-perfil').addEventListener('click', () => salir(() => { entrar = true; perfil(); }));
   wireCuenta();
+}
+
+function inicial(t) { return (String(t || '?').trim()[0] || '?').toUpperCase(); }
+
+/* ---------- Perfil: expediente, estadísticas, ranking y trofeos ---------- */
+function perfil(pestana) {
+  cerrarAlarma();
+  document.title = 'Mi expediente · Salas Secretas';
+  pantallaPerfil(APP, {
+    pestana, cuenta, misCasos, casos: CASOS, esc, fmt, inicial,
+    medicion: { html: panelMedicion, wire: wireMedicion },
+    volver: () => salir(() => { entrar = true; menu(); }),
+    alEntrar: entradaHoja,
+  });
 }
 
 /* ---------- Partida ---------- */
