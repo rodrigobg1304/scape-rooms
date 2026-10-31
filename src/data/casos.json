@@ -1,0 +1,269 @@
+[
+ {
+  "premisa": {
+   "id": "reloj_praga",
+   "titulo": "El reloj que se paró en Praga",
+   "tema": "01",
+   "descripcion": "Praga, agosto de 1939. El relojero Ondřej Vlk trabajaba en secreto para la resistencia: con mensajes interceptados estaba ajustando un reloj que marcaría la hora exacta en que empezaría la guerra. La noche en que el reloj se paró, Vlk desapareció. En el taller estaban sus cuatro aprendices: Pavel, Elena, Lukáš y Karel. Uno de ellos trabaja para la Gestapo, que llegará en una hora.",
+   "objetivo": "Abrir la caja fuerte de Vlk y descubrir a qué hora empezará la guerra.",
+   "avisos": {
+    "10": "Se oyen motores en la calle. Quedan 10 minutos.",
+    "5": "Botas en la escalera. La Gestapo está en el portal: quedan 5 minutos.",
+    "0": "La Gestapo ha entrado en el taller. Se acabó el tiempo."
+   }
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Taller"
+   },
+   {
+    "orden": 2,
+    "nombre": "Torre del reloj"
+   },
+   {
+    "orden": 3,
+    "nombre": "Sótano"
+   },
+   {
+    "orden": 4,
+    "nombre": "Caja fuerte"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "faro_cabo",
+   "titulo": "La última guardia de Punta do Cabo",
+   "tema": "02",
+   "descripcion": "Durante una tormenta, el farero Tomé Lage apagó la lámpara y desapareció. En su diario quedan anotaciones que solo tienen sentido siguiendo el mar y el cielo.",
+   "objetivo": "Encontrar el diario de guardia escondido bajo la boya de rescate."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Muelle"
+   },
+   {
+    "orden": 2,
+    "nombre": "Caseta de señales"
+   },
+   {
+    "orden": 3,
+    "nombre": "Torre de la lámpara"
+   },
+   {
+    "orden": 4,
+    "nombre": "Boya de rescate"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "monasterio_lorenzo",
+   "titulo": "Las palabras del abad",
+   "descripcion": "En el monasterio de San Lorenzo han desaparecido los folios del abad Anselmo, justo antes de la visita del obispo. Cada sala guarda un fragmento de su último escrito.",
+   "objetivo": "Abrir la cripta y recuperar el manuscrito secreto."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Claustro"
+   },
+   {
+    "orden": 2,
+    "nombre": "Scriptorium"
+   },
+   {
+    "orden": 3,
+    "nombre": "Biblioteca"
+   },
+   {
+    "orden": 4,
+    "nombre": "Cripta"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "estudio_ruiz",
+   "titulo": "El cuadro que no estaba terminado",
+   "descripcion": "El pintor Elías Ruiz desapareció dejando su última obra a medias. Hay pistas escondidas en el color, la simetría y la firma del lienzo.",
+   "objetivo": "Encontrar el certificado de autenticidad escondido en el estudio."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Estudio"
+   },
+   {
+    "orden": 2,
+    "nombre": "Taller de marcos"
+   },
+   {
+    "orden": 3,
+    "nombre": "Sala de exposición"
+   },
+   {
+    "orden": 4,
+    "nombre": "Caja de seguridad"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "kepler_9",
+   "titulo": "Silencio en la órbita",
+   "descripcion": "La estación Kepler-9 ha quedado en modo de emergencia. El sistema solo acepta comandos resueltos por su módulo de lógica, antes de que la gravedad de la luna la arrastre.",
+   "objetivo": "Acceder al núcleo y descargar el registro de la misión."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Puente de mando"
+   },
+   {
+    "orden": 2,
+    "nombre": "Laboratorio"
+   },
+   {
+    "orden": 3,
+    "nombre": "Esclusa"
+   },
+   {
+    "orden": 4,
+    "nombre": "Cámara de mando"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "teatro_provincias",
+   "titulo": "El telón que no sube",
+   "descripcion": "Horas antes del estreno, la protagonista ha desaparecido y el telón se ha quedado bloqueado. Su libreto está lleno de notas musicales que son claves de la cerradura del escenario.",
+   "objetivo": "Levantar el telón y recuperar el libreto original."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Escenario"
+   },
+   {
+    "orden": 2,
+    "nombre": "Camerino"
+   },
+   {
+    "orden": 3,
+    "nombre": "Palco"
+   },
+   {
+    "orden": 4,
+    "nombre": "Cuerda del telón"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "cabana_valdeiro",
+   "titulo": "Sendero sin marcar",
+   "descripcion": "Un fotógrafo de naturaleza se perdió en el bosque de Valdeiro con una cámara que guarda la prueba de un incendio provocado. Su cabaña se orienta con el sol, la brújula y el terreno.",
+   "objetivo": "Encontrar la cámara escondida en la cabaña."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Claro"
+   },
+   {
+    "orden": 2,
+    "nombre": "Refugio"
+   },
+   {
+    "orden": 3,
+    "nombre": "Río"
+   },
+   {
+    "orden": 4,
+    "nombre": "Cabaña"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "ultimo_plato",
+   "titulo": "Receta para un robo",
+   "descripcion": "Alguien ha robado la receta maestra del restaurante El Último Plato la noche antes del servicio. Cada plato del menú secreto es una pista; hay que cocinar la combinación correcta para abrir la caja.",
+   "objetivo": "Abrir la caja de la cocina y recuperar la receta maestra."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Cocina"
+   },
+   {
+    "orden": 2,
+    "nombre": "Despensa"
+   },
+   {
+    "orden": 3,
+    "nombre": "Terraza"
+   },
+   {
+    "orden": 4,
+    "nombre": "Mesa del chef"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "rodaje_luna",
+   "titulo": "El último fotograma",
+   "descripcion": "En los años veinte, la última película de un director de cine mudo desapareció del estudio dejando solo fotogramas sueltos. Hay que ordenar la historia y reconstruir la proyección para encontrar la bobina escondida.",
+   "objetivo": "Proyectar la película completa y recuperar la bobina escondida."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Set de rodaje"
+   },
+   {
+    "orden": 2,
+    "nombre": "Sala de montaje"
+   },
+   {
+    "orden": 3,
+    "nombre": "Proyección"
+   },
+   {
+    "orden": 4,
+    "nombre": "Estreno"
+   }
+  ]
+ },
+ {
+  "premisa": {
+   "id": "ajedrez_abuelo",
+   "titulo": "Jaque al heredero",
+   "descripcion": "El abuelo Tomás dejó una partida de ajedrez sin terminar y una caja con una nota: solo quien resuelva la posición podrá abrirla.",
+   "objetivo": "Abrir la caja y recuperar el testamento."
+  },
+  "salas": [
+   {
+    "orden": 1,
+    "nombre": "Salón"
+   },
+   {
+    "orden": 2,
+    "nombre": "Biblioteca de partidas"
+   },
+   {
+    "orden": 3,
+    "nombre": "Terraza"
+   },
+   {
+    "orden": 4,
+    "nombre": "Mesa final"
+   }
+  ]
+ }
+]

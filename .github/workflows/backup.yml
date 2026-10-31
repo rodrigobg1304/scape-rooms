@@ -1,0 +1,35 @@
+name: Copia de seguridad
+
+# Copia semanal de esquema y datos, cifrada con BACKUP_PASSPHRASE.
+# El repositorio es público y cualquiera con acceso de lectura puede descargar artefactos:
+# por eso la copia nunca se sube sin cifrar (contiene soluciones y datos de jugadores).
+on:
+  schedule:
+    - cron: '43 3 * * 0'
+  workflow_dispatch:
+
+jobs:
+  copia:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Volcar base de datos
+        run: |
+          mkdir copia
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f copia/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f copia/esquema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f copia/datos.sql --use-copy --data-only --schema public,privado,auth
+          tar czf copia.tar.gz copia
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - name: Cifrar
+        run: gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o copia.tar.gz.gpg copia.tar.gz
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: copia-${{ github.run_number }}
+          path: copia.tar.gz.gpg
+          retention-days: 90

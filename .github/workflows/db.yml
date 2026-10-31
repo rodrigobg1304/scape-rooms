@@ -1,0 +1,22 @@
+name: Migraciones de base de datos
+
+# Aplica las migraciones nuevas de supabase/migrations al proyecto de Supabase.
+# El contenido de los casos (soluciones) NO se carga aquí: no está en el repositorio.
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/migrations/**']
+  workflow_dispatch:
+
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Aplicar migraciones
+        run: supabase db push --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+# Contenido con soluciones: nunca al repositorio público
+contenido/
+supabase/contenido.sql
+supabase/.temp/
+backups/
+__pycache__/

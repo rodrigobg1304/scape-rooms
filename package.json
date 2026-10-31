@@ -1,0 +1,19 @@
+{
+  "name": "scape-rooms",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "contenido": "python3 scripts/contenido.py",
+    "db:contenido": "python3 scripts/contenido.py && psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/contenido.sql"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
+  },
+  "devDependencies": {
+    "vite": "^6.4.5"
+  }
+}
