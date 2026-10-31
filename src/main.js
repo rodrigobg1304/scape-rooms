@@ -55,7 +55,7 @@ function fmt(ms) {
   return h ? `${h}:${p(m)}:${p(r)}` : `${p(m)}:${p(r)}`;
 }
 function cuentaHtml() {
-  return `<div id="cuenta" class="cuenta" role="timer" aria-live="off"><span>Tiempo restante</span><b>30:00</b></div>`;
+  return `<div id="cuenta" class="cuenta-atras" role="timer" aria-live="off"><span>Tiempo restante</span><b>30:00</b></div>`;
 }
 function tic() {
   const el = document.getElementById('cuenta');
@@ -165,9 +165,10 @@ function wireMedicion() {
 function salir(fn) {
   const h = APP.firstElementChild;
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!h || reduce) { fn(); return; }
+  const ir = () => { fn(); window.scrollTo(0, 0); }; // cada pantalla nueva empieza arriba
+  if (!h || reduce) { ir(); return; }
   h.classList.add('sale');
-  setTimeout(fn, 280);
+  setTimeout(ir, 280);
 }
 function entradaHoja() {
   const h = APP.firstElementChild;
@@ -315,6 +316,7 @@ async function jugar(j) {
   actual = j;
   relojEnMarcha = false;
   document.documentElement.dataset.juego = j.premisa.tema || '01';
+  document.documentElement.dataset.caso = j.premisa.id;
   APP.innerHTML = '<div class="hoja"><p class="cargando">Abriendo el caso…</p></div>';
   try { ponerEstado(await api.iniciar(j.premisa.id)); } catch (e) { pantallaError(e.message, () => jugar(j)); return; }
   entrar = true;
@@ -347,9 +349,17 @@ function pintar() {
         ${d.hora ? relojFinal(d) : ''}`
       : `<section class="dibujo" style="margin-top:14px"><p class="escena">Has conseguido: <strong>${esc(d.objeto || '')}</strong>.</p>
         <p class="rot" style="margin-top:10px">${esc(j.premisa.objetivo)}</p></section>`;
+    const aTiempo = ms <= limite();
     APP.innerHTML = `<div class="hoja">
-      <div class="cajetin"><div><h1>${esc(j.premisa.titulo)}</h1><p class="texto" style="color:var(--ink-soft);margin-top:6px">Caso cerrado · ${fmt(ms)} · ${ms <= limite() ? 'a tiempo' : 'fuera de tiempo'}${e.es_primera ? '' : ' · repetición (no puntúa)'}</p></div>
-        <div class="sello"><b>100%</b>${n}/${n} salas</div></div>${descubierto}
+      <div class="cajetin"><div class="final-cabecera" style="grid-column:1/-1">
+        <div class="medalla" aria-hidden="true">${aTiempo ? '✓' : '⌛'}</div>
+        <p class="rot">Caso cerrado${e.es_primera ? '' : ' · repetición, no puntúa'}</p>
+        <h1>${esc(j.premisa.titulo)}</h1></div></div>
+      <div class="datos-final">
+        <div class="dato"><b>${fmt(ms)}</b><span>Tiempo total</span></div>
+        <div class="dato"><b>${aTiempo ? 'A tiempo' : 'Fuera'}</b><span>Límite ${fmt(limite())}</span></div>
+        <div class="dato"><b>+${fmt((e.penal_seg || 0) * 1000)}</b><span>Penalización</span></div>
+        <div class="dato"><b>${n}/${n}</b><span>Salas abiertas</span></div></div>${descubierto}
       ${cuerpoFin}${barraHtml().replace('Reiniciar caso', 'Jugar de nuevo')}${extra}</div>`;
     wire(j);
     conectarReloj(d);
