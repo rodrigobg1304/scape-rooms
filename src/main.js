@@ -1,6 +1,6 @@
 import './styles.css';
 import CASOS from './data/casos.json';
-import { api, configurado, sesion } from './api.js';
+import { api, configurado, sesion, usuario, registrar, entrarCuenta, salirCuenta, reenviarConfirmacion, aliasDisponible } from './api.js';
 
 /* Motor de Salas Secretas.
    El navegador solo conoce la portada de cada caso. El contenido de cada sala, las pistas,
@@ -17,6 +17,9 @@ let actual = null;        // caso público (CASOS[i])
 let estado = null;        // estado de la partida devuelto por el servidor
 let desfase = 0;          // reloj del servidor − reloj local, en ms
 let misCasos = [];        // progreso por caso (mis_casos)
+let cuenta = null;        // usuario actual: { email, anonimo, alias }
+let vistaCuenta = '';     // '', 'registro' o 'entrar'
+let avisoCuenta = '';
 let aviso = '';
 let armado = false;
 let midiendo = false;
@@ -108,13 +111,14 @@ function filaCaso(j, i) {
   const resueltas = m.resueltas || 0;
   const hechas = resueltas ? n : enCurso ? enCurso.salas_resueltas : 0;
   const msCurso = enCurso ? ahora() - Date.parse(enCurso.inicio) + enCurso.penal_seg * 1000 : 0;
-  return { id: j.premisa.id, titulo: j.premisa.titulo, hoja: i + 1, salas: n, hechas, pct: Math.round(hechas / n * 100),
+  return { id: j.premisa.id, titulo: j.premisa.titulo, hoja: i + 1, salas: n, hechas, validado: m.validado === true, pct: Math.round(hechas / n * 100),
     resueltas, enCurso, msCurso, mejor: m.mejor_seg != null ? m.mejor_seg * 1000 : null };
 }
 function resumen() {
   const filas = CASOS.map(filaCaso);
-  const totSalas = filas.reduce((a, f) => a + f.salas, 0), totRes = filas.reduce((a, f) => a + f.hechas, 0);
-  return { filas, totSalas, totRes, pctGlobal: Math.round(totRes / totSalas * 100) };
+  const jugables = filas.filter(f => f.validado);
+  const totSalas = jugables.reduce((a, f) => a + f.salas, 0), totRes = jugables.reduce((a, f) => a + f.hechas, 0);
+  return { filas, totSalas, totRes, pctGlobal: totSalas ? Math.round(totRes / totSalas * 100) : 0 };
 }
 function textoResumen() {
   const r = resumen();
@@ -195,13 +199,78 @@ function pantallaError(texto, reintentar) {
   if (b) b.addEventListener('click', reintentar);
 }
 
+/* ---------- Cuenta ---------- */
+function barraCuenta() {
+  const nombre = cuenta && (cuenta.alias || cuenta.email);
+  const quien = !cuenta ? ''
+    : cuenta.anonimo
+      ? '<b>Invitado</b> <span class="small">· tu progreso solo vive en este navegador</span>'
+      : `<b>${esc(nombre)}</b>${cuenta.alias && cuenta.email ? ` <span class="small">· ${esc(cuenta.email)}</span>` : ''}`;
+  const botones = !cuenta ? '' : cuenta.anonimo
+    ? `<button class="primario" id="ir-registro" type="button">Crear cuenta</button><button class="ghost" id="ir-entrar" type="button">Entrar</button>`
+    : '<button class="ghost" id="salir-cuenta" type="button">Salir</button>';
+  return `<section class="cuenta" aria-label="Cuenta"><p class="quien" id="quien">${quien}</p><div class="acciones">${botones}</div></section>
+    ${cuenta && cuenta.anonimo && vistaCuenta ? formCuenta() : ''}
+    ${avisoCuenta ? `<p class="msg" role="status">${esc(avisoCuenta)}</p>` : ''}`;
+}
+function formCuenta() {
+  const reg = vistaCuenta === 'registro';
+  return `<form class="form-cuenta" id="form-cuenta" novalidate>
+    <p class="rot">${reg ? 'Crear cuenta' : 'Entrar'}</p>
+    <p class="small">${reg ? 'Conservas el progreso de este navegador. Te enviaremos un correo para confirmar la dirección.'
+      : 'Si ya tienes cuenta. El progreso de invitado de este navegador no se mezcla con el de tu cuenta.'}</p>
+    ${reg ? '<label>Alias (3–24 caracteres, sale en el ranking)<input name="alias" autocomplete="nickname" minlength="3" maxlength="24" required></label>' : ''}
+    <label>Correo<input name="email" type="email" autocomplete="email" required></label>
+    <label>Contraseña${reg ? ' (mínimo 8)' : ''}<input name="password" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" minlength="8" required></label>
+    <div class="acciones"><button class="primario" type="submit">${reg ? 'Crear cuenta' : 'Entrar'}</button>
+      <button class="ghost" type="button" id="cancelar-cuenta">Cancelar</button></div>
+    <p class="msg" id="msg-cuenta" role="alert"></p></form>`;
+}
+function wireCuenta() {
+  const clic = (id, fn) => { const e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
+  clic('ir-registro', () => { vistaCuenta = 'registro'; avisoCuenta = ''; menu(); });
+  clic('ir-entrar', () => { vistaCuenta = 'entrar'; avisoCuenta = ''; menu(); });
+  clic('cancelar-cuenta', () => { vistaCuenta = ''; menu(); });
+  clic('salir-cuenta', async e => {
+    e.target.disabled = true;
+    try { await salirCuenta(); cuenta = null; avisoCuenta = ''; vistaCuenta = ''; menu(); }
+    catch (x) { e.target.disabled = false; avisoCuenta = x.message; menu(); }
+  });
+  const f = document.getElementById('form-cuenta');
+  if (!f) return;
+  f.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const msg = document.getElementById('msg-cuenta'), enviar = f.querySelector('[type=submit]');
+    const v = Object.fromEntries(new FormData(f).entries());
+    const email = String(v.email || '').trim(), password = String(v.password || ''), alias = String(v.alias || '').trim();
+    const reg = vistaCuenta === 'registro';
+    if (reg && (alias.length < 3 || alias.length > 24)) { msg.textContent = 'El alias debe tener entre 3 y 24 caracteres.'; return; }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { msg.textContent = 'Escribe un correo válido.'; return; }
+    if (password.length < 8) { msg.textContent = 'La contraseña necesita al menos 8 caracteres.'; return; }
+    enviar.disabled = true; msg.textContent = 'Un momento…';
+    try {
+      if (reg) {
+        if (!(await aliasDisponible(alias))) throw new Error('Ese alias ya está en uso.');
+        const r = await registrar({ alias, email, password });
+        avisoCuenta = r.pendiente ? `Te hemos enviado un correo a ${email}. Pulsa el enlace para confirmar la cuenta; hasta entonces sigues como invitado.` : 'Cuenta creada.';
+      } else {
+        await entrarCuenta({ email, password });
+        avisoCuenta = '';
+      }
+      vistaCuenta = '';
+      cuenta = await usuario();
+      menu();
+    } catch (x) { enviar.disabled = false; msg.textContent = x.message; }
+  });
+}
+
 /* ---------- Índice ---------- */
 async function menu() {
   cerrarAlarma();
   actual = null; estado = null; aviso = ''; armado = false; mapaAbierto = false;
   document.documentElement.removeAttribute('data-juego');
   document.title = 'Salas Secretas';
-  try { misCasos = await api.misCasos(); } catch (e) { pantallaError(e.message, menu); return; }
+  try { misCasos = await api.misCasos(); cuenta = await usuario(); } catch (e) { pantallaError(e.message, menu); return; }
   const r = resumen();
   APP.innerHTML = `<div class="hoja">
     <div class="cajetin">
@@ -209,11 +278,19 @@ async function menu() {
         <p class="texto" style="margin-top:8px;color:var(--ink-soft)">Cuatro salas por caso y 30 minutos para resolverlo. El avance y el tiempo se guardan en tu cuenta.</p></div>
       <div class="sello"><b>${r.pctGlobal}%</b>${r.totRes}/${r.totSalas} salas</div>
     </div>
+    ${barraCuenta()}
     <div class="barra"><button class="ghost" id="medir" type="button">${midiendo ? 'Ocultar medición' : 'Ver medición'}</button></div>
     ${midiendo ? panelMedicion() : ''}
     <div class="indice">${CASOS.map((j, i) => {
       const f = r.filas[i];
       const hecho = f.resueltas > 0;
+      if (!f.validado) {
+        return `<button class="hoja-caso bloqueado" data-id="${esc(j.premisa.id)}" disabled aria-disabled="true">
+        <span class="sello-ok bloq" aria-hidden="true">Bloqueado</span>
+        <span class="rot est">Hoja ${String(i + 1).padStart(2, '0')} · Pendiente de validar</span>
+        <span class="t">${esc(j.premisa.titulo)}</span>
+        <span class="d">${esc(j.premisa.descripcion)}</span></button>`;
+      }
       const est = hecho ? 'Resuelto' : f.enCurso ? `En curso · sala ${f.enCurso.salas_resueltas + 1} de ${f.salas} · ${fmt(f.msCurso)}` : 'Sin empezar';
       return `<button class="hoja-caso${hecho ? ' completo' : ''}" data-id="${esc(j.premisa.id)}">
         ${hecho ? '<span class="sello-ok" aria-hidden="true">Completado</span>' : ''}
@@ -223,13 +300,14 @@ async function menu() {
         ${f.mejor !== null ? `<span class="rot" style="margin-top:4px">Mejor partida ${fmt(f.mejor)} · ${f.resueltas} ${f.resueltas === 1 ? 'resuelta' : 'resueltas'}</span>` : ''}</button>`;
     }).join('')}</div></div>`;
   entradaHoja();
-  APP.querySelectorAll('.hoja-caso').forEach(b => b.addEventListener('click', () => {
+  APP.querySelectorAll('.hoja-caso:not([disabled])').forEach(b => b.addEventListener('click', () => {
     midiendo = false;
     const jj = CASOS.find(j => j.premisa.id === b.dataset.id);
     salir(() => jugar(jj));
   }));
   document.getElementById('medir').addEventListener('click', () => { midiendo = !midiendo; menu(); });
   wireMedicion();
+  wireCuenta();
 }
 
 /* ---------- Partida ---------- */

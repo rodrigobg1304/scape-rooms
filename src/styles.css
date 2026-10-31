@@ -199,3 +199,18 @@ input {
 .cargando { padding: 40px 0; text-align: center; color: var(--ink-soft); font: 600 .8rem var(--mono); text-transform: uppercase; letter-spacing: .12em; }
 .error { border: 1.5px solid #b3261e; padding: 14px; margin-top: 14px; color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Cuenta y casos bloqueados */
+.cuenta { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 8px 12px; border: 1.5px solid var(--rule); background: var(--chip); }
+.cuenta .quien { margin: 0; overflow-wrap: anywhere; }
+.cuenta .acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.cuenta button { min-height: 40px; }
+.form-cuenta { display: grid; gap: 10px; margin-top: 10px; padding: 14px; border: 1.5px solid var(--ink); background: var(--paper); max-width: 440px; }
+.form-cuenta label { display: grid; gap: 4px; font: 600 .8rem var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+.form-cuenta input { font: 400 1rem var(--sans); text-transform: none; letter-spacing: 0; }
+.form-cuenta .acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.form-cuenta p { margin: 0; }
+.hoja-caso.bloqueado { opacity: .55; cursor: not-allowed; border-style: dashed; background: repeating-linear-gradient(135deg, transparent 0 10px, var(--grid) 10px 11px), var(--paper); }
+.hoja-caso.bloqueado:disabled { opacity: .55; }
+.sello-ok.bloq { color: var(--ink-soft); border-color: var(--ink-soft); }
+.hoja-caso.bloqueado .est { padding-right: 120px; }

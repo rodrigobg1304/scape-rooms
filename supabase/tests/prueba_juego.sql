@@ -105,3 +105,29 @@ end $$;
 reset role;
 \echo '--- tiempos por sala (vista privada)'
 select caso_id, sala_id, segundos, segundos_ajustados, pistas, fallos from privado.v_tiempos_sala order by caso_id, sala_id limit 6;
+
+\echo '--- casos bloqueados y alias'
+do $$
+declare lock_id text; n int;
+begin
+  select id into lock_id from public.casos where publicado and not validado limit 1;
+  assert lock_id is not null, 'hay algún caso sin validar';
+  set role authenticated;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  begin
+    perform public.iniciar_partida(lock_id);
+    raise exception 'FALLO: se puede jugar un caso sin validar';
+  exception when sqlstate '55000' then raise notice 'ok: caso sin validar bloqueado en el servidor';
+  end;
+  assert (select count(*) from jsonb_array_elements(public.mis_casos()) c where (c->>'validado')::boolean) = 2, 'mis_casos marca 2 validados';
+  assert public.mi_perfil()->>'alias' = 'Rodrigo', 'mi_perfil';
+  assert not public.alias_disponible('rodrigo'), 'alias único sin mayúsculas';
+  assert public.alias_disponible('Nuevo Alias'), 'alias libre';
+  reset role;
+  -- el alias de los metadatos del registro llega al perfil; duplicado → cuenta sin alias, sin fallar
+  insert into auth.users (id, raw_user_meta_data) values ('00000000-0000-0000-0000-00000000000c', '{"alias":"Lucía"}');
+  insert into auth.users (id, raw_user_meta_data) values ('00000000-0000-0000-0000-00000000000d', '{"alias":"lucía"}');
+  assert (select alias from public.perfiles where id = '00000000-0000-0000-0000-00000000000c') = 'Lucía', 'alias desde metadatos';
+  assert (select alias from public.perfiles where id = '00000000-0000-0000-0000-00000000000d') is null, 'alias duplicado → sin alias';
+  raise notice 'ok: alias';
+end $$;

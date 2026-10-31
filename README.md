@@ -124,8 +124,20 @@ psql -d salas_test -f supabase/tests/stub_supabase.sql \
 
 `prueba_juego.sql` juega una partida completa y comprueba que las soluciones no se pueden leer, que no se pueden crear partidas sin pasar por las funciones, que un jugador no ve ni toca partidas ajenas y que las penalizaciones se aplican.
 
+## Cuentas y casos validados
+
+- Cada visitante entra como invitado (sesión anónima). **Crear cuenta** (alias, correo, contraseña) convierte esa sesión en una cuenta con `updateUser`: es el mismo usuario, así que conserva su progreso. **Entrar** usa `signInWithPassword`; el progreso de invitado del navegador no se mezcla con el de la cuenta.
+- Con *Confirm email* activo, la cuenta queda pendiente hasta pulsar el enlace del correo. El correo integrado de Supabase solo escribe a miembros del equipo y con un límite muy bajo: para jugadores reales hace falta SMTP propio (*Authentication → Emails → SMTP Settings*, p. ej. Resend). En *Authentication → URL Configuration* pon `https://rodrigobg1304.github.io/scape-rooms/` como Site URL y en Redirect URLs.
+- `casos.validado` decide qué casos se pueden jugar; los demás salen bloqueados en el índice y `iniciar_partida` los rechaza. `contenido.sql` no lo toca. Desde el SQL editor:
+
+```sql
+update public.casos set validado = true  where id = 'NOMBRE_DEL_CASO';
+update public.casos set validado = false where id = 'NOMBRE_DEL_CASO';
+select id, titulo, validado from public.casos order by orden;
+```
+
 ## Limitaciones conocidas
 
 - El tiempo es de reloj: si alguien deja el caso a medias y vuelve otro día, su tiempo lo refleja. Es deliberado: pausar desde el cliente sería fácil de falsear.
-- La sesión anónima vive en el navegador. Si se borran los datos del navegador, se pierde el progreso. Falta vincular la cuenta a un email (fase 2).
+- La sesión anónima vive en el navegador. Si se borran los datos del navegador, se pierde el progreso. Con una cuenta de correo el progreso se conserva entre dispositivos.
 - Una cuenta anónima por navegador: no impide que alguien cree varias para practicar. Las repeticiones con la misma cuenta no puntúan, pero con cuentas nuevas sí.
