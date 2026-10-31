@@ -8,8 +8,18 @@ const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  // updateViaCache: 'none' hace que el navegador pida sw.js siempre a la red (GitHub Pages lo cachea 10 min).
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(new URL('sw.js', document.baseURI).pathname).catch(() => {});
+    navigator.serviceWorker.register(new URL('sw.js', document.baseURI).pathname, { updateViaCache: 'none' })
+      .then(reg => reg.update().catch(() => {}))
+      .catch(() => {});
+  });
+  // Cuando entra una versión nueva, recarga una sola vez para usarla.
+  let recargado = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargado) return;
+    recargado = true;
+    window.location.reload();
   });
 }
 

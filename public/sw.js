@@ -1,10 +1,10 @@
 // Service worker de Salas Secretas: deja la app abierta sin conexión (la carga inicial).
 // Los datos de partida viven en Supabase: sin red no se guardan, así que la red manda.
-const VERSION = 'salas-v1';
+const VERSION = 'salas-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'no-store' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -25,7 +25,7 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {
     // Navegación: red primero, y si no hay red, la última copia de la app.
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-store' })
         .then(res => { caches.open(VERSION).then(c => c.put('./index.html', res.clone())); return res; })
         .catch(() => caches.match('./index.html'))
     );
