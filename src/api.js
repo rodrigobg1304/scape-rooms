@@ -15,7 +15,12 @@ export const supabase = configurado ? createClient(SUPABASE_URL, CLAVE) : null;
 // Inicia sesión anónima si no hay ninguna. La cuenta se puede vincular a un email más adelante.
 export async function sesion() {
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) return session;
+  if (session) {
+    // Si el usuario de la sesión ya no existe (p. ej. borrado en el panel), el token guardado no sirve.
+    const { error } = await supabase.auth.getUser();
+    if (!error) return session;
+    await supabase.auth.signOut();
+  }
   const { data, error } = await supabase.auth.signInAnonymously();
   if (error) throw new Error('No se ha podido iniciar sesión: ' + error.message);
   return data.session;
@@ -63,9 +68,10 @@ export async function aliasDisponible(alias) { return Boolean(await rpc('alias_d
 // hasta que se pulse el enlace.
 export async function registrar({ alias, email, password }) {
   try {
-    await rpc('poner_alias', { p_alias: alias });
+    // Primero la cuenta: si el envío del correo falla, no se reserva el alias.
     const { data, error } = await supabase.auth.updateUser({ email, password }, { emailRedirectTo: RAIZ() });
     if (error) throw error;
+    await rpc('poner_alias', { p_alias: alias });
     return { pendiente: !data.user.email_confirmed_at };
   } catch (e) { throw new Error(traducir(e)); }
 }
