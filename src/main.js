@@ -323,11 +323,11 @@ async function menu() {
       const f = r.filas[i];
       const hecho = f.resueltas > 0;
       if (!f.validado) {
-        return `<button class="hoja-caso bloqueado" data-id="${esc(j.premisa.id)}" disabled aria-disabled="true">
+        return `<button class="hoja-caso bloqueado" data-id="${esc(j.premisa.id)}" disabled aria-disabled="true" aria-label="Hoja ${String(i + 1).padStart(2, '0')}: caso bloqueado, pendiente de validar">
         <span class="sello-ok bloq" aria-hidden="true">Bloqueado</span>
         <span class="rot est">Hoja ${String(i + 1).padStart(2, '0')} · Pendiente de validar</span>
-        <span class="t">${esc(j.premisa.titulo)}</span>
-        <span class="d">${esc(j.premisa.descripcion)}</span></button>`;
+        <span class="t" aria-hidden="true">${esc(j.premisa.titulo)}</span>
+        <span class="d" aria-hidden="true">${esc(j.premisa.descripcion)}</span></button>`;
       }
       const est = hecho ? 'Resuelto' : f.enCurso ? `En curso · sala ${f.enCurso.salas_resueltas + 1} de ${f.salas} · ${fmt(f.msCurso)}` : 'Sin empezar';
       return `<button class="hoja-caso${hecho ? ' completo' : ''}" data-id="${esc(j.premisa.id)}">
