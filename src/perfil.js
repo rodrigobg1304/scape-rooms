@@ -115,7 +115,7 @@ function panelResumen(ctx) {
   const cifras = `<div class="cifras">
     <div class="cifra"><b>${p.jugadas || 0}</b><span>Partidas jugadas</span><small>${p.resueltas || 0} resueltas · ${p.en_curso || 0} en curso</small></div>
     <div class="cifra"><b>${casosRes}<small style="display:inline;font-size:.5em"> / ${jugables}</small></b><span>Casos cerrados</span><small>${p.a_tiempo || 0} a tiempo</small></div>
-    <div class="cifra"><b>${duracion(stats.tiempo_total_seg)}</b><span>Tiempo jugado</span><small>sin contar penalizaciones</small></div>
+    <div class="cifra"><b>${duracion(stats.tiempo_total_seg)}</b><span>Tiempo jugado</span><small>solo tiempo dentro de las salas, sin penalizaciones</small></div>
     <div class="cifra"><b>${r.pct_acierto == null ? '—' : r.pct_acierto + '%'}</b><span>Acierto</span><small>${pl(r.aciertos || 0, 'acierto', 'aciertos')} · ${pl(r.fallos || 0, 'fallo', 'fallos')}</small></div></div>`;
   if (!p.jugadas) return cifras + vacio('Tu expediente está en blanco', 'Abre tu primer caso y aquí verás el tiempo de cada sala, tus aciertos y tus trofeos.');
   const casos = stats.casos.map(c => {

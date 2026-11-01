@@ -17,7 +17,6 @@ const UMBRALES = [10, 5, 0];
 
 let actual = null;        // caso público (CASOS[i])
 let estado = null;        // estado de la partida devuelto por el servidor
-let desfase = 0;          // reloj del servidor − reloj local, en ms
 let misCasos = [];        // progreso por caso (mis_casos)
 let cuenta = null;        // usuario actual: { email, anonimo, alias }
 let vistaCuenta = '';     // '', 'registro' o 'entrar'
@@ -37,15 +36,87 @@ let widgetActivo = null;
 function esc(t) { return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function lsLeer(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (x) { return null; } }
 function lsGuardar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (x) { /* sin almacenamiento */ } }
-function ahora() { return Date.now() + desfase; }
-function ponerEstado(e) { estado = e; desfase = Date.parse(e.ahora) - Date.now(); }
+function ponerEstado(e) {
+  estado = e;
+  enviadaPausa = false;   // el servidor puede haber abierto el contador de la sala nueva
+  activoDesde = jugando() ? Date.now() : null;
+}
 
-/* ---------- Tiempo: lo cuenta el servidor (inicio, fin y penalizaciones) ---------- */
+/* ---------- Tiempo: cada sala tiene su contador y solo suma mientras se juega ----------
+   El servidor guarda los segundos activos de cada sala. Mientras la sala está abierta y visible, el
+   navegador avisa con un latido cada pocos segundos; al salir, ocultar la pestaña o quedarse sin tocar
+   nada, avisa de que se pone en pausa. El tiempo de la partida es la suma de sus salas + penalizaciones. */
+const LATIDO_MS = 5000;           // cada cuánto avisa de que sigue jugando
+const INACTIVO_MS = 3 * 60000;    // sin tocar nada durante este tiempo se considera que no se está jugando
+let activoDesde = null;           // Date.now() desde que corre el contador local; null = en pausa
+let ultimaAccion = Date.now();    // último toque, tecla o desplazamiento
+let enviadaPausa = false;         // el servidor ya sabe que el contador está en pausa
+let latiendo = false;             // hay un latido en vuelo
+let ultimoIntento = 0;
+
+function jugando() {
+  return Boolean(actual && estado && estado.estado === 'en_curso'
+    && document.visibilityState === 'visible' && Date.now() - ultimaAccion < INACTIVO_MS);
+}
+// Pone el contador local en marcha o en pausa según se esté jugando o no.
+function sincronizarLocal() {
+  if (!estado || estado.estado !== 'en_curso') { activoDesde = null; return; }
+  const ya = jugando();
+  if (ya && activoDesde === null) activoDesde = Date.now();
+  else if (!ya && activoDesde !== null) {
+    const s = (Date.now() - activoDesde) / 1000;
+    estado.activo_seg = (estado.activo_seg || 0) + s;
+    estado.sala_activo_seg = (estado.sala_activo_seg || 0) + s;
+    activoDesde = null;
+  }
+}
 function consumido(e = estado) {
   if (!e) return 0;
-  const fin = e.fin ? Date.parse(e.fin) : ahora();
-  return fin - Date.parse(e.inicio) + (e.penal_seg || 0) * 1000;
+  const vivo = e === estado && activoDesde !== null ? Date.now() - activoDesde : 0;
+  return (e.activo_seg || 0) * 1000 + vivo + (e.penal_seg || 0) * 1000;
 }
+async function latir() {
+  sincronizarLocal();
+  if (!actual || !estado || estado.estado !== 'en_curso' || latiendo) return;
+  const activo = jugando();
+  if (!activo && enviadaPausa) return;
+  const pid = estado.partida;
+  latiendo = true; ultimoIntento = Date.now();
+  try {
+    const r = await api.latido(pid, activo);
+    enviadaPausa = !activo;
+    if (estado && estado.partida === pid && estado.estado === 'en_curso' && estado.salas_resueltas === r.salas_resueltas) {
+      estado.activo_seg = r.activo_seg; estado.sala_activo_seg = r.sala_activo_seg;
+      activoDesde = jugando() ? Date.now() : null;
+    }
+  } catch (x) { /* sin conexión: el servidor no cuenta ese hueco */ }
+  finally {
+    latiendo = false;
+    if (jugando() !== activo) latir();   // el jugador volvió o se fue mientras viajaba el latido
+  }
+}
+// Deja en pausa el contador de la sala (al salir de la partida, antes de olvidar su estado).
+function pausar() {
+  if (!actual || !estado || estado.estado !== 'en_curso') return;
+  activoDesde = null; enviadaPausa = true;
+  api.latido(estado.partida, false).catch(() => { /* el hueco sin latidos no cuenta */ });
+}
+function actividad() {
+  const parado = Date.now() - ultimaAccion >= INACTIVO_MS;
+  ultimaAccion = Date.now();
+  if (parado) latir();   // reanuda al instante tras una pausa por inactividad
+}
+['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll', 'input']
+  .forEach(t => window.addEventListener(t, actividad, { passive: true, capture: true }));
+// Volver a la pestaña cuenta como actividad: el contador se reanuda sin esperar a que se toque algo.
+function alCambiarVisibilidad() {
+  if (document.visibilityState === 'visible') ultimaAccion = Date.now();
+  latir();
+}
+document.addEventListener('visibilitychange', alCambiarVisibilidad);
+window.addEventListener('pageshow', alCambiarVisibilidad);
+window.addEventListener('pagehide', latir);
+setInterval(latir, LATIDO_MS);
 function limite() { return ((estado && estado.limite_seg) || 1800) * 1000; }
 function fmtCuenta(ms) {
   const s = Math.ceil(Math.abs(ms) / 1000);
@@ -60,6 +131,9 @@ function cuentaHtml() {
   return `<div id="cuenta" class="cuenta-atras" role="timer" aria-live="off"><span>Tiempo restante</span><b>30:00</b></div>`;
 }
 function tic() {
+  sincronizarLocal();
+  // Si se dejó de jugar (inactividad) y el servidor no lo sabe, avisa sin esperar al siguiente latido.
+  if (actual && estado && estado.estado === 'en_curso' && !jugando() && !enviadaPausa && Date.now() - ultimoIntento > 3000) latir();
   const el = document.getElementById('cuenta');
   if (!el || !estado || estado.estado !== 'en_curso') return;
   const rest = limite() - consumido();
@@ -112,7 +186,7 @@ function filaCaso(j, i) {
   const enCurso = m.en_curso;
   const resueltas = m.resueltas || 0;
   const hechas = resueltas ? n : enCurso ? enCurso.salas_resueltas : 0;
-  const msCurso = enCurso ? ahora() - Date.parse(enCurso.inicio) + enCurso.penal_seg * 1000 : 0;
+  const msCurso = enCurso ? ((enCurso.activo_seg || 0) + enCurso.penal_seg) * 1000 : 0;   // solo tiempo jugado
   return { id: j.premisa.id, titulo: j.premisa.titulo, hoja: i + 1, salas: n, hechas, validado: m.validado === true, pct: Math.round(hechas / n * 100),
     resueltas, enCurso, msCurso, mejor: m.mejor_seg != null ? m.mejor_seg * 1000 : null };
 }
@@ -311,6 +385,7 @@ const GRUPOS = [
 
 async function menu() {
   cerrarAlarma();
+  pausar();
   marcarRuta('');
   volverCuenta = () => menu();
   actual = null; estado = null; aviso = ''; armado = false; mapaAbierto = false;
@@ -349,7 +424,7 @@ async function menu() {
         <span class="avatar" aria-hidden="true">${esc(inicial(nombre))}</span><span class="etq-perfil">Mi expediente</span></button></header>
     <div class="cajetin">
       <div><h1>Elige un caso</h1>
-        <p class="texto" style="margin-top:8px;color:var(--ink-soft)">Cuatro salas por caso y 30 minutos para resolverlo. El avance y el tiempo se guardan en tu cuenta.</p></div>
+        <p class="texto" style="margin-top:8px;color:var(--ink-soft)">Cuatro salas por caso y 30 minutos de juego para resolverlo: el reloj de cada sala solo corre mientras estás dentro. El avance y el tiempo se guardan en tu cuenta.</p></div>
       <div class="sello"><b>${r.pctGlobal}%</b>${r.totRes}/${r.totSalas} salas</div>
     </div>
     <div class="filtros-casos" role="search">
@@ -405,6 +480,7 @@ function inicial(t) { return (String(t || '?').trim()[0] || '?').toUpperCase(); 
 /* ---------- Perfil: expediente, estadísticas, ranking y trofeos ---------- */
 function perfil(pestana) {
   cerrarAlarma();
+  pausar();
   actual = null; estado = null;
   document.documentElement.removeAttribute('data-juego');
   document.documentElement.removeAttribute('data-caso');
@@ -423,6 +499,7 @@ function perfil(pestana) {
 
 /* ---------- Partida ---------- */
 async function jugar(j) {
+  pausar();   // si venimos de otro caso, el contador de su sala se queda en pausa
   marcarRuta('#/caso/' + j.premisa.id);
   actual = j;
   relojEnMarcha = false; reiniciarFaroFinal();
@@ -432,6 +509,7 @@ async function jugar(j) {
   try { ponerEstado(await api.iniciar(j.premisa.id)); } catch (e) { pantallaError(e.message, () => jugar(j)); return; }
   entrar = true;
   pintar();
+  latir();   // arranca el contador de la sala
 }
 
 function barraHtml() {

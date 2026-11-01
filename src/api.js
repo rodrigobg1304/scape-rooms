@@ -98,4 +98,6 @@ export const api = {
   comprobar: (partida, respuesta) => rpc('comprobar_respuesta', { p_partida: partida, p_respuesta: respuesta }),
   pista: partida => rpc('pedir_pista', { p_partida: partida }),
   reiniciar: partida => rpc('reiniciar_partida', { p_partida: partida }),
+  // Avisa de que se sigue jugando (activo = true) o de que el contador de la sala se pone en pausa (false).
+  latido: (partida, activo = true) => rpc('latido', { p_partida: partida, p_activo: activo }),
 };

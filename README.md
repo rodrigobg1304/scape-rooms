@@ -124,6 +124,17 @@ psql -d salas_test -f supabase/tests/stub_supabase.sql \
 
 `prueba_juego.sql` juega una partida completa y comprueba que las soluciones no se pueden leer, que no se pueden crear partidas sin pasar por las funciones, que un jugador no ve ni toca partidas ajenas y que las penalizaciones se aplican.
 
+`prueba_tiempo.sql` (necesita `contenido_prueba.sql` en lugar de `contenido.sql`) comprueba el tiempo por sala: que cada sala tiene su contador, que la pausa y los huecos largos no suman, que el total es la suma de las salas y que los latidos ajenos se rechazan.
+
+## Tiempo de juego
+
+Cada sala tiene su propio contador (`public.tiempo_sala`) y solo suma mientras se juega:
+
+- El navegador envía un `latido` cada 5 s mientras la sala está abierta, la pestaña visible y hay actividad. Al salir al índice o al expediente, ocultar la pestaña, o pasar 3 minutos sin tocar nada (`INACTIVO_MS` en `src/main.js`), envía un latido de pausa.
+- El servidor suma al contador de la sala lo transcurrido desde el latido anterior, siempre que no pasen más de 15 s (`privado.hueco_max()`). Cerrar la pestaña sin avisar pierde como mucho los últimos segundos; nunca cuenta tiempo de más.
+- Al acertar se cierra el contador de esa sala y arranca el de la siguiente. El tiempo de la partida (cuenta atrás de 30 min, ranking, perfil) es la suma de sus salas más las penalizaciones.
+- Las partidas anteriores a `20261101150000_tiempo_por_sala.sql` no tienen contadores y conservan su tiempo de reloj.
+
 ## Cuentas y casos validados
 
 - Cada visitante entra como invitado (sesión anónima). **Crear cuenta** (alias, correo, contraseña) convierte esa sesión en una cuenta con `updateUser`: es el mismo usuario, así que conserva su progreso. **Entrar** usa `signInWithPassword`; el progreso de invitado del navegador no se mezcla con el de la cuenta.
