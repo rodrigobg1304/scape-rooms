@@ -2,6 +2,7 @@ import './styles.css';
 import CASOS from './data/casos.json';
 import { api, configurado, sesion, usuario, registrar, entrarCuenta, salirCuenta, reenviarConfirmacion, aliasDisponible } from './api.js';
 import { pantallaPerfil } from './perfil.js';
+import { widgetFaro, conectarFaro, faroFinal, conectarFaroFinal, reiniciarFaroFinal } from './faro.js';
 
 /* Motor de Salas Secretas.
    El navegador solo conoce la portada de cada caso. El contenido de cada sala, las pistas,
@@ -369,7 +370,7 @@ function perfil(pestana) {
 async function jugar(j) {
   marcarRuta('#/caso/' + j.premisa.id);
   actual = j;
-  relojEnMarcha = false;
+  relojEnMarcha = false; reiniciarFaroFinal();
   document.documentElement.dataset.juego = j.premisa.tema || '01';
   document.documentElement.dataset.caso = j.premisa.id;
   APP.innerHTML = '<div class="hoja"><p class="cargando">Abriendo el caso…</p></div>';
@@ -398,13 +399,15 @@ function pintar() {
   if (e.estado === 'resuelta') {
     const d = e.desenlace || {};
     const ms = consumido();
-    const cuerpoFin = d.epilogo
+    const aTiempo = ms <= limite();
+    // Si el caso tiene final fuera de tiempo (epilogo_tarde), se cuenta ese cuando se pasa del límite.
+    const epilogo = (!aTiempo && d.epilogo_tarde) ? d.epilogo_tarde : d.epilogo;
+    const cuerpoFin = epilogo
       ? `<section class="dibujo epilogo" style="margin-top:14px"><span class="marca">${esc(d.objeto || '')}</span>
-          ${d.epilogo.map(t => `<p class="escena">${esc(t)}</p>`).join('')}</section>
-        ${d.hora ? relojFinal(d) : ''}`
+          ${epilogo.map(t => `<p class="escena">${esc(t)}</p>`).join('')}</section>
+        ${d.hora ? relojFinal(d) : ''}${d.final === 'faro' ? faroFinal(d) : ''}`
       : `<section class="dibujo" style="margin-top:14px"><p class="escena">Has conseguido: <strong>${esc(d.objeto || '')}</strong>.</p>
         <p class="rot" style="margin-top:10px">${esc(j.premisa.objetivo)}</p></section>`;
-    const aTiempo = ms <= limite();
     APP.innerHTML = `<div class="hoja">
       <div class="cajetin"><div class="final-cabecera" style="grid-column:1/-1">
         <div class="medalla" aria-hidden="true">${aTiempo ? '✓' : '⌛'}</div>
@@ -418,6 +421,7 @@ function pintar() {
       ${cuerpoFin}${barraHtml().replace('Reiniciar caso', 'Jugar de nuevo')}${extra}</div>`;
     wire(j);
     conectarReloj(d);
+    conectarFaroFinal(d);
     return;
   }
 
@@ -594,7 +598,7 @@ function widget(w) {
   if (w.tipo === 'ruedas') return ruedasHtml(w);
   if (w.tipo === 'cartas') return cartasHtml(w);
   if (w.tipo === 'fragmentos') return fragmentosHtml(w);
-  return '';
+  return widgetFaro(w, estadoW);
 }
 function ruedasHtml(w) {
   const yc = 85, xs = [70, 180, 300], R = d => 8 + d * 0.9;
@@ -683,9 +687,11 @@ function campoRespuesta(sala) {
       <option value="">— Elige a la informante —</option>
       ${sala.widget.sospechosos.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>`;
   }
-  return `<input id="r" name="r" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Respuesta">`;
+  const ph = sala.widget && sala.widget.formato ? ` placeholder="${esc(sala.widget.formato)}"` : '';
+  return `<input id="r" name="r" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Respuesta"${ph}>`;
 }
 function conectarWidgets() {
+  if (estado && estado.sala && estado.sala.widget) conectarFaro(APP, estadoW, { ...estado.sala.widget, clave: estado.sala.id });
   if (document.getElementById('giro')) conectarSimulador();
   /* Ruedas de la torre: avanzan sin mostrar nunca el número de pasos. */
   const caja = APP.querySelector('.pasos[data-clave]');
@@ -772,7 +778,8 @@ function comprobar() {
   armado = false;
   if (!campo.value.trim()) { msg.textContent = 'Escribe una respuesta.'; campo.focus(); return; }
   accion(document.getElementById('comprobar'), async () => {
-    const r = await api.comprobar(estado.partida, campo.value);
+    const valor = /^\d:\d\d$/.test(campo.value.trim()) ? '0' + campo.value.trim() : campo.value;
+    const r = await api.comprobar(estado.partida, valor);
     ponerEstado(r.estado);
     if (r.correcto) {
       aviso = 'Correcto. Se abre la siguiente sala.';
@@ -781,7 +788,9 @@ function comprobar() {
       APP.firstElementChild.inert = true; // nada se puede pulsar mientras se abre la puerta
       setTimeout(() => salir(() => { entrar = true; pintar(); }), reducido() ? 0 : 520);
     } else if (r.penal_seg > 0) {
-      senal('fallo', msg, `Acusación equivocada: +${Math.round(r.penal_seg / 60)} min. Revisa las frases.`);
+      const deMarea = estado.sala && estado.sala.widget && estado.sala.widget.tipo === 'ordenes';
+      senal('fallo', msg, deMarea ? `Hora equivocada: +${Math.round(r.penal_seg / 60)} min. Revisa la orden y la marea.`
+        : `Acusación equivocada: +${Math.round(r.penal_seg / 60)} min. Revisa las frases.`);
     } else {
       senal('fallo', msg, 'No es esa respuesta. Prueba otra vez o pide una nota.');
       if (campo.select) campo.select();
@@ -801,7 +810,7 @@ function wire(j, sala) {
     armado = false;
     accion(rein, async () => {
       ponerEstado(await api.reiniciar(estado.partida));
-      relojEnMarcha = false;
+      relojEnMarcha = false; reiniciarFaroFinal();
       Object.keys(estadoW).forEach(k => delete estadoW[k]);
       try { Object.keys(localStorage).filter(k => k.startsWith('salas-frag-' + j.premisa.id + '/')).forEach(k => localStorage.removeItem(k)); } catch (x) { /* sin almacenamiento */ }
       aviso = 'Caso reiniciado. Las repeticiones no cuentan para el ranking.';

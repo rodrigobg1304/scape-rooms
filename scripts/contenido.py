@@ -32,9 +32,9 @@ CATEGORIAS = {
     "narrativa": "Narrativa",
 }
 NIVELES = [("sutil", 1, 60), ("directa", 2, 120), ("solucion", 3, 300)]  # nivel, penalización en segundos
-PENAL_FALLO = {"cartas": 60}  # widgets en los que fallar penaliza (acusaciones)
+PENAL_FALLO = {"cartas": 60, "ordenes": 60}  # widgets en los que fallar penaliza (acusaciones)
 LIMITE_SEG = 30 * 60
-DESENLACE = ("epilogo", "historia", "hora")
+DESENLACE = ("epilogo", "epilogo_tarde", "historia", "hora", "final")
 
 
 def q(v):
