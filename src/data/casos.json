@@ -36,8 +36,13 @@
    "id": "faro_cabo",
    "titulo": "La última guardia de Punta do Cabo",
    "tema": "02",
-   "descripcion": "Durante una tormenta, el farero Tomé Lage apagó la lámpara y desapareció. En su diario quedan anotaciones que solo tienen sentido siguiendo el mar y el cielo.",
-   "objetivo": "Encontrar el diario de guardia escondido bajo la boya de rescate."
+   "descripcion": "Costa da Morte, febrero de 1981. En plena tormenta, la luz de Punta do Cabo se apagó de madrugada y la lancha de salvamento desapareció del muelle. Con ella, el farero Tomé Lage, que en más de treinta años nunca dejó el faro a oscuras. Si sigue vivo, está en el agua helada: el equipo de rescate tiene 30 minutos para reconstruir su noche y saber adónde fue.",
+   "objetivo": "Reconstruir la última guardia de Tomé y encontrarle antes de que amanezca.",
+   "avisos": {
+    "10": "El cielo empieza a clarear por el este y la marea ya baja. Quedan 10 minutos.",
+    "5": "La radio capta un motor sin luces cerca del bajo de A Laxe. Quedan 5 minutos.",
+    "0": "Amanece sobre un mar en calma y no hay rastro de la lancha. Se acabó el tiempo."
+   }
   },
   "salas": [
    {
