@@ -435,3 +435,42 @@ table.salas-t { width: 100%; border-collapse: collapse; font-size: .95rem; min-w
 /* Ajedrez: marfil con marco de nogal */
 [data-caso="ajedrez_abuelo"] .cajetin, [data-caso="ajedrez_abuelo"] .dibujo { box-shadow: 0 0 0 6px #4a2f19, 0 0 0 7px #8a6440, var(--sombra); }
 [data-caso="ajedrez_abuelo"] .dibujo .numero::before { content: "♞ "; color: var(--parch-rule); }
+
+/* ---------- Faro de Punta do Cabo: widgets y final (src/faro.js) ---------- */
+.faro-w { color: var(--parch-ink); }
+.faro-w .lect-faro { margin: 8px 0 0; font: 700 .95rem var(--sans); color: var(--parch-ink); }
+.faro-w .t-suave { fill: var(--parch-soft); }
+.faro-w .t-fuerte { fill: var(--parch-ink); }
+.faro-w .t-acento { fill: var(--card-acc); font-weight: 700; }
+.faro-w .l-suave { stroke: var(--parch-rule); stroke-width: 1; }
+.faro-w .c-fondo { fill: var(--parch-2); stroke: var(--parch-rule); }
+.faro-w .estrella { fill: #f8fbfb; cursor: pointer; }
+.faro-w .estrella.sel { fill: #f6cd55; stroke: #f6cd55; stroke-width: 3; }
+.faro-w .estrella-toque { fill: transparent; cursor: pointer; }
+.faro-w .estrella:focus-visible { outline: none; stroke: #f6cd55; stroke-width: 4; }
+.faro-w .dz { fill: var(--parch-2); stroke: var(--parch-rule); }
+.faro-w .dz.on { fill: var(--card-acc); stroke: var(--card-acc); }
+.faro-w .nota-orden { display: flex; gap: 10px; align-items: flex-start; text-transform: none; letter-spacing: 0; font: 400 .95rem var(--sans); color: var(--parch-ink); margin: 0;
+  padding: 10px 12px; border: 1px solid var(--parch-rule); border-radius: 10px; background: var(--campo); min-height: 44px; }
+.faro-w .nota-orden input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--card-acc); }
+.faro-w .nota-orden small { color: var(--parch-soft); font-size: .85rem; }
+.faro-w .cartas .fila > span { flex: 1 1 200px; font-weight: 400; }
+.faro-w .mar { fill: #cfe2ea; }
+.faro-w .tierra { fill: #e6dcc3; stroke: #8a7a55; stroke-width: 1.5; }
+.faro-w .roca { fill: #3d5a6b; }
+.faro-w .traza { stroke-width: 2.5; stroke-linecap: round; }
+.faro-w .traza-a { stroke: var(--card-acc); }
+.faro-w .traza-b { stroke: #c0392b; stroke-dasharray: 7 4; }
+.faro-w .boya { fill: #f6cd55; stroke: #0a2131; stroke-width: 1.5; }
+.faro-w .muelle { fill: #0a2131; }
+.faro-w .faro-punto { fill: #c0392b; stroke: #0a2131; stroke-width: 2; }
+.faro-w .norte { fill: var(--parch-ink); }
+.faro-w .fila-rumbo { margin-top: 12px; font: 400 .95rem var(--sans); }
+.faro-w .fila-rumbo .pasos { margin-top: 6px; }
+.faro-w .pasos button { min-width: 56px; }
+.faro-final { margin-top: 14px; display: grid; gap: 12px; }
+.faro-final svg { width: 100%; height: auto; display: block; border-radius: var(--radio); border: 1px solid var(--rule); }
+.faro-final .haz { opacity: 0; }
+.faro-final .haz.encendido { opacity: 1; animation: faro-barre 6s linear infinite; }
+@keyframes faro-barre { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .faro-final .haz.encendido { animation: none; } }
