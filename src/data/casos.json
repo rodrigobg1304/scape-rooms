@@ -119,8 +119,14 @@
   "premisa": {
    "id": "kepler_9",
    "titulo": "Silencio en la órbita",
-   "descripcion": "La estación Kepler-9 ha quedado en modo de emergencia. El sistema solo acepta comandos resueltos por su módulo de lógica, antes de que la gravedad de la luna la arrastre.",
-   "objetivo": "Acceder al núcleo y descargar el registro de la misión."
+   "tema": "05",
+   "descripcion": "Órbita lunar, 14 de marzo de 2071. Eres el técnico de guardia de la estación Kepler-9 y te despierta el silencio: ni ventiladores, ni radio, ni la voz de VERA, el ordenador de a bordo. Alguien ha apagado a mano los motores que mantienen la órbita y ha cortado la antena. La comandante Irene Vidal ha desaparecido horas después de anotar en el registro de la misión dónde está el mayor depósito de hielo de la Luna. A bordo quedan el piloto Bruno, la ingeniera Nadia, el médico Teo y la geóloga Sira. Uno de ellos es el saboteador, y en 30 minutos la estación cruzará la altura de no retorno.",
+   "objetivo": "Descubrir quién saboteó la estación y volver a encender los motores antes de la caída.",
+   "avisos": {
+    "10": "VERA parpadea: altitud 40 km. Por la ventanilla, los cráteres ya tienen sombra. Quedan 10 minutos.",
+    "5": "El casco cruje. Altitud 18 km. Alguien, en algún módulo, espera a que no llegues. Quedan 5 minutos.",
+    "0": "Altura de no retorno. Los motores ya no pueden levantar la estación. Se acabó el tiempo."
+   }
   },
   "salas": [
    {
@@ -137,7 +143,7 @@
    },
    {
     "orden": 4,
-    "nombre": "Cámara de mando"
+    "nombre": "Núcleo"
    }
   ]
  },
