@@ -527,3 +527,80 @@ table.salas-t { width: 100%; border-collapse: collapse; font-size: .95rem; min-w
 .faro-final .haz.encendido { opacity: 1; animation: faro-barre 6s linear infinite; }
 @keyframes faro-barre { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .faro-final .haz.encendido { animation: none; } }
+
+/* ---------- Kepler-9: widgets y final (src/kepler.js) ---------- */
+.kepler-w { color: var(--parch-ink); }
+.kepler-w .lect-kepler { margin: 8px 0 0; font: 700 .95rem var(--sans); color: var(--parch-ink); }
+.kepler-w .lect-kepler.small-k { font-weight: 400; font-size: .88rem; color: var(--parch-soft); }
+.kepler-w .pasos button { min-width: 64px; }
+.kepler-w .pasos button:disabled { opacity: .45; cursor: default; }
+/* Luces del registro binario */
+.kepler-w .fila-bits { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-top: 10px; }
+.kepler-w .fila-bits .etq { font: 400 .95rem var(--sans); flex: 1 1 150px; }
+.kepler-w .bits { display: inline-flex; gap: 7px; padding: 7px 9px; border: 1px solid var(--parch-rule); border-radius: 8px; background: #04060c; }
+.kepler-w .bit { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #3b4d68; background: #0b1220; }
+.kepler-w .bit.on { background: #ffb54d; border-color: #ffd08a; box-shadow: 0 0 10px rgba(255,181,77,.75); }
+.kepler-w .bits.grande .bit { width: 30px; height: 30px; }
+.kepler-w .bits.grande .bit.on { background: #61d5ff; border-color: #b6ecff; box-shadow: 0 0 12px rgba(97,213,255,.8); }
+/* Plano de módulos */
+.kepler-w .tramo { stroke: #4d6384; stroke-width: 3; stroke-linecap: round; }
+.kepler-w .tramo.on { stroke: #ffb54d; stroke-width: 5; }
+.kepler-w .peso-f { fill: #04060c; stroke: #2c4466; }
+.kepler-w .peso { fill: #e3ecf7; font: 700 12px var(--sans); }
+.kepler-w .modulo { cursor: pointer; outline: none; }
+.kepler-w .modulo circle { fill: #0b1220; stroke: #61d5ff; stroke-width: 2; }
+.kepler-w .modulo.destino circle { stroke: #ff7a6b; stroke-dasharray: 4 3; }
+.kepler-w .modulo.on circle { fill: #3a2a0c; stroke: #ffb54d; }
+.kepler-w .modulo.fin circle { fill: #ffb54d; stroke: #ffd08a; }
+.kepler-w .modulo .cod { fill: #e3ecf7; font: 700 12px var(--sans); pointer-events: none; }
+.kepler-w .modulo.fin .cod { fill: #03101a; }
+.kepler-w .modulo .nom { fill: #9fb2cb; font: 400 11px var(--sans); pointer-events: none; }
+.kepler-w .modulo:focus-visible circle { stroke: #fff; stroke-width: 4; }
+/* Circuito */
+.kepler-w .cable { fill: none; stroke: #4d6384; stroke-width: 2.5; stroke-linejoin: round; }
+.kepler-w .nudo { fill: #9fb2cb; }
+.kepler-w .nodo-c { cursor: pointer; outline: none; }
+.kepler-w .nodo-c rect, .kepler-w .nodo-c circle { fill: #0b1220; stroke: #61d5ff; stroke-width: 2; }
+.kepler-w .nodo-c.v1 rect, .kepler-w .nodo-c.v1 circle { fill: #3a2a0c; stroke: #ffb54d; }
+.kepler-w .nodo-c.v0 rect, .kepler-w .nodo-c.v0 circle { fill: #161b26; stroke: #7b8aa3; }
+.kepler-w .nodo-c .cod { fill: #e3ecf7; font: 700 11px var(--sans); pointer-events: none; }
+.kepler-w .nodo-c .val { fill: #9fb2cb; font: 700 13px var(--sans); pointer-events: none; }
+.kepler-w .nodo-c.v1 .val { fill: #ffb54d; }
+.kepler-w .nodo-c.v0 .val { fill: #e3ecf7; }
+.kepler-w .nodo-c:focus-visible rect, .kepler-w .nodo-c:focus-visible circle { stroke: #fff; stroke-width: 4; }
+.kepler-w .sal { fill: #e3ecf7; font: 700 10.5px var(--sans); letter-spacing: .04em; }
+.kepler-w .sal.obj { fill: #9fb2cb; font-weight: 400; }
+.kepler-w .leyenda { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font: 400 .92rem var(--sans); }
+.kepler-w .leyenda li { display: grid; grid-template-columns: 48px 1fr; gap: 6px; }
+.kepler-w .leyenda b { color: var(--card-acc); }
+/* Registro de accesos */
+.kepler-w .registro { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font: 400 .95rem var(--sans); }
+.kepler-w .registro li { display: grid; grid-template-columns: 4.2em 1fr; gap: 8px; padding: 7px 9px; border: 1px solid var(--parch-rule); border-radius: 6px; background: rgba(4,6,12,.5); }
+.kepler-w .registro b { color: var(--card-acc); font-variant-numeric: tabular-nums; }
+.kepler-w .cartas .fila > span { flex: 1 1 90px; }
+.kepler-w .tf { min-width: 132px; }
+.kepler-w .tf.v1 { border-color: #ffb54d; color: #ffb54d; }
+.kepler-w .tf.v2 { border-color: #7b8aa3; color: #9fb2cb; text-decoration: line-through; }
+/* Final */
+.kepler-final { margin-top: 14px; display: grid; gap: 12px; }
+.kepler-final svg { width: 100%; height: auto; display: block; border-radius: var(--radio); border: 1px solid var(--rule); }
+.kepler-final .k-limite { stroke: #ff7a6b; stroke-width: 1; stroke-dasharray: 6 5; }
+.kepler-final .k-estacion { transform: translateY(40px); transition: transform 3.2s cubic-bezier(.2, .7, .2, 1); }
+.kepler-final.tarde .k-estacion { transform: translateY(58px) rotate(4deg); transform-origin: 200px 96px; }
+.kepler-final.en-marcha:not(.tarde) .k-estacion { transform: translateY(0); }
+.kepler-final .k-llama, .kepler-final .k-ondas, .kepler-final .k-capsula { opacity: 0; }
+.kepler-final .k-ventana { fill: #1a2333; transition: fill .6s ease 1s; }
+.kepler-final.en-marcha:not(.tarde) .k-llama { opacity: 1; animation: k-llama .18s steps(2) infinite; transform-origin: 172px 108px; }
+.kepler-final.en-marcha:not(.tarde) .k-ventana { fill: #ffb54d; }
+.kepler-final.en-marcha:not(.tarde) .k-ondas { animation: k-ondas 1.6s ease-out 2.6s infinite; }
+.kepler-final .k-capsula { transform: translateY(58px); }
+.kepler-final.tarde.en-marcha .k-capsula { opacity: 1; transform: translate(70px, -70px); transition: transform 3.2s cubic-bezier(.2, .7, .2, 1); }
+.kepler-final .k-radio-t { color: var(--accent); margin: 0; }
+.kepler-final .k-radio { margin: 4px 0 0; font: 700 1.05rem var(--display); color: var(--ink); }
+@keyframes k-llama { from { transform: scaleY(1); } to { transform: scaleY(1.35); } }
+@keyframes k-ondas { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .kepler-final .k-estacion, .kepler-final .k-capsula { transition: none; }
+  .kepler-final.en-marcha:not(.tarde) .k-llama { animation: none; }
+  .kepler-final.en-marcha:not(.tarde) .k-ondas { animation: none; opacity: 1; }
+}
