@@ -1,11 +1,11 @@
 /* Widgets y final del caso «Silencio en la órbita» (kepler_9).
    Ninguno muestra la respuesta: ayudan a razonar (contador binario de pruebas, plano para trazar
-   rutas, circuito para anotar y registro de accesos con notas). El estado vive en `estado`, un objeto
+   rutas, circuito para anotar y caja negra que se recorre minuto a minuto). El estado vive en `estado`, un objeto
    por sala que main.js conserva mientras dure la visita. */
 
 const e = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-export const TIPOS_KEPLER = ['binario', 'cableado', 'circuito', 'accesos'];
+export const TIPOS_KEPLER = ['binario', 'cableado', 'circuito', 'cajanegra'];
 
 /* ---------- Sala 1 · Puente: el registro de VERA y un contador binario de pruebas ---------- */
 function luces(bits, grande) {
@@ -158,38 +158,67 @@ function conectarCircuito(app, s, repintar) {
   caja.querySelector('[data-notas-borrar]').addEventListener('click', () => { st.nota = {}; repintar(); });
 }
 
-/* ---------- Sala 4 · Núcleo: tarjetas, pulseras y el plano de pasillos ---------- */
-const VEREDICTOS = ['Sin decidir', 'Pudo', 'No pudo'];
-function accesosHtml(w, s) {
-  const st = s[w.clave] || (s[w.clave] = { ruta: [], nota: {} });
-  const tarjetas = w.tarjetas.map(t => `<li><b>${e(t.hora)}</b><span>${e(t.lugar)} · tarjeta de ${e(t.de)}</span></li>`).join('');
-  const pulseras = w.pulseras.map(p => `<li><b>${e(p.de)}</b><span>${e(p.hora)} · ${e(p.lugar)}</span></li>`).join('');
-  const notas = w.sospechosos.map(n => {
-    const v = st.nota[n] || 0;
-    return `<div class="fila"><span>${e(n)}</span>
-      <button type="button" class="ghost tf v${v}" data-veredicto="${e(n)}" aria-label="${e(n)}: ${VEREDICTOS[v]}. Toca para cambiar">${VEREDICTOS[v]}</button></div>`;
+/* ---------- Sala 4 · Núcleo: la caja negra de VERA, minuto a minuto ---------- */
+const COLORES = ['#61d5ff', '#ffb54d', '#7be08a', '#ff8fb4', '#c9a4ff'];
+const HUECOS = [[-17, -17], [17, -17], [-17, 17], [17, 17], [0, -26]];
+const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+function lugarDe(p, t) { let n = p.tramos[0][1]; for (const [m, nodo] of p.tramos) if (m <= t) n = nodo; return n; }
+function pulsoDe(p, i, t) { return p.sinPulso !== undefined && t >= p.sinPulso ? null : p.base + ((t * 7 + i * 3) % 5) - 2; }
+function estacionSvg(mapa, clasesNodo, extra, etiqueta) {
+  const pos = Object.fromEntries(mapa.nodos.map(n => [n.id, n]));
+  const tramos = mapa.tramos.map(([a, b]) => `<line class="tramo${pos[a].fuera || pos[b].fuera ? ' fuera' : ''}" x1="${pos[a].x}" y1="${pos[a].y}" x2="${pos[b].x}" y2="${pos[b].y}"/>`).join('');
+  const nodos = mapa.nodos.map(n => {
+    const et = n.et || [0, 34, 'middle'];
+    return `<g class="modulo quieto${n.fuera ? ' destino' : ''} ${clasesNodo(n.id)}"><circle cx="${n.x}" cy="${n.y}" r="19"/>
+      <text class="cod" x="${n.x}" y="${n.y + 4.5}" text-anchor="middle">${e(n.id)}</text>
+      <text class="nom" x="${n.x + et[0]}" y="${n.y + et[1]}" text-anchor="${et[2]}">${e(n.n)}</text></g>`;
   }).join('');
-  return `<div class="engr kepler-w" data-accesos="${e(w.clave)}" aria-label="Registro de accesos del núcleo">
-    <p class="rot" style="margin:0">Tarjetas usadas esta noche</p>
-    <ul class="registro">${tarjetas}</ul>
-    <p class="rot" style="margin:14px 0 0">Pulseras de pulso · dónde estaba cada uno</p>
-    <ul class="registro">${pulseras}</ul>
-    <p class="rot" style="margin:14px 0 0">Pasillos · minutos a pie por tramo</p>
-    ${planoSvg(w.mapa, st.ruta, 'Plano de pasillos de la estación, con los minutos de cada tramo')}
-    <p class="lect-kepler" aria-live="polite">${e(lecturaRuta(w.mapa, st.ruta))}</p>
-    <div class="pasos"><button type="button" class="ghost" data-ruta-borrar ${st.ruta.length ? '' : 'disabled'}>Borrar ruta</button></div>
-    <p class="rot" style="margin:14px 0 0">Tus notas · ¿pudo hacer el recorrido del saboteador?</p>
-    <div class="cartas">${notas}</div></div>`;
+  return `<svg viewBox="0 0 360 ${mapa.alto || 262}" role="img" aria-label="${e(etiqueta)}">${tramos}${nodos}${extra}</svg>`;
 }
-function conectarAccesos(app, s, repintar, w) {
-  const caja = app.querySelector('[data-accesos]');
+function vistaCajaNegra(w, t) {
+  const pos = Object.fromEntries(w.mapa.nodos.map(n => [n.id, n]));
+  const nombre = id => pos[id].n;
+  const ahora = w.eventos.filter(ev => ev.t === t);
+  const ocupa = {};
+  const puntos = w.pulseras.map((p, i) => {
+    const en = lugarDe(p, t), k = (ocupa[en] = (ocupa[en] || 0) + 1) - 1, [dx, dy] = HUECOS[k % HUECOS.length];
+    return `<g class="punto"><circle cx="${pos[en].x + dx}" cy="${pos[en].y + dy}" r="10" fill="${COLORES[i % COLORES.length]}"/>
+      <text x="${pos[en].x + dx}" y="${pos[en].y + dy + 4}" text-anchor="middle">${e(p.n[0])}</text></g>`;
+  }).join('');
+  const lista = w.pulseras.map((p, i) => {
+    const pu = pulsoDe(p, i, t);
+    return `<li><i style="background:${COLORES[i % COLORES.length]}">${e(p.n[0])}</i><b>${e(p.n)}</b><span>${e(nombre(lugarDe(p, t)))}</span><span>${pu === null ? 'sin pulso' : `pulso ${pu}`}</span></li>`;
+  }).join('');
+  const voz = `${hhmm(t)}. ${w.pulseras.map(p => `${p.n} en ${nombre(lugarDe(p, t))}`).join(', ')}.`;
+  return `${estacionSvg(w.mapa, id => (ahora.some(ev => ev.nodo === id) ? 'pita' : ''), puntos, voz)}
+    <p class="lect-kepler suceso${ahora.length ? ' hay' : ''}" aria-live="polite">${ahora.length ? ahora.map(ev => e(ev.texto)).join(' ') : 'Sin novedades en este minuto.'}</p>
+    <ul class="pulseras">${lista}</ul>`;
+}
+function cajaNegraHtml(w, s) {
+  const st = s[w.clave] || (s[w.clave] = { t: w.desde });
+  const marcas = w.eventos.map(ev => `<i style="left:${((ev.t - w.desde) / (w.hasta - w.desde)) * 100}%"></i>`).join('');
+  return `<div class="engr kepler-w" data-cajanegra="${e(w.clave)}" aria-label="Caja negra de VERA">
+    <p class="rot" style="margin:0">Caja negra de VERA · cada punto es una pulsera</p>
+    <div class="reloj-cn"><button type="button" class="ghost" data-min="-1" aria-label="Un minuto atrás">−1</button>
+      <output data-hora>${hhmm(st.t)}</output>
+      <button type="button" class="ghost" data-min="1" aria-label="Un minuto adelante">+1</button></div>
+    <div class="barra-cn"><input type="range" min="${w.desde}" max="${w.hasta}" step="1" value="${st.t}" aria-label="Hora de la grabación" aria-valuetext="${hhmm(st.t)}">
+      <div class="marcas" aria-hidden="true">${marcas}</div></div>
+    <div data-vista>${vistaCajaNegra(w, st.t)}</div></div>`;
+}
+/* El deslizador no se repinta mientras se arrastra: solo cambia la vista de debajo. */
+function conectarCajaNegra(app, s, w) {
+  const caja = app.querySelector('[data-cajanegra]');
   if (!caja) return;
-  const st = s[caja.dataset.accesos];
-  conectarPlano(caja, w.mapa, st, repintar);
-  caja.querySelectorAll('[data-veredicto]').forEach(b => b.addEventListener('click', () => {
-    st.nota[b.dataset.veredicto] = ((st.nota[b.dataset.veredicto] || 0) + 1) % VEREDICTOS.length;
-    repintar();
-  }));
+  const st = s[caja.dataset.cajanegra], barra = caja.querySelector('input[type=range]');
+  const poner = t => {
+    st.t = Math.max(w.desde, Math.min(w.hasta, t));
+    barra.value = st.t; barra.setAttribute('aria-valuetext', hhmm(st.t));
+    caja.querySelector('[data-hora]').textContent = hhmm(st.t);
+    caja.querySelector('[data-vista]').innerHTML = vistaCajaNegra(w, st.t);
+  };
+  barra.addEventListener('input', () => poner(Number(barra.value)));
+  caja.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => poner(st.t + Number(b.dataset.min))));
 }
 
 /* ---------- Despacho ---------- */
@@ -197,7 +226,7 @@ export function widgetKepler(w, s) {
   if (w.tipo === 'binario') return binarioHtml(w, s);
   if (w.tipo === 'cableado') return cableadoHtml(w, s);
   if (w.tipo === 'circuito') return circuitoHtml(w, s);
-  if (w.tipo === 'accesos') return accesosHtml(w, s);
+  if (w.tipo === 'cajanegra') return cajaNegraHtml(w, s);
   return '';
 }
 /* Repinta solo el widget (no toda la sala), para no perder lo escrito en la respuesta ni el foco. */
@@ -220,10 +249,10 @@ export function conectarKepler(app, s, w) {
     if (caja) conectarPlano(caja, w.mapa, s[caja.dataset.cableado], repintar);
   }
   if (w.tipo === 'circuito') conectarCircuito(app, s, repintar);
-  if (w.tipo === 'accesos') conectarAccesos(app, s, repintar, w);
+  if (w.tipo === 'cajanegra') conectarCajaNegra(app, s, w);
 }
 function selector(el) {
-  for (const a of ['data-suma', 'data-modulo', 'data-ruta-borrar', 'data-nodo', 'data-notas-borrar', 'data-veredicto']) {
+  for (const a of ['data-suma', 'data-modulo', 'data-ruta-borrar', 'data-nodo', 'data-notas-borrar']) {
     if (el.hasAttribute(a)) {
       const v = el.getAttribute(a);
       return `.kepler-w [${a}${v ? `="${v}"` : ''}]`;
@@ -232,13 +261,95 @@ function selector(el) {
   return null;
 }
 
-/* ---------- Final: encender los motores y romper el silencio ---------- */
-let motores = false;
+/* ---------- Final: cerrarle el paso a la saboteadora y, después, encender los motores ---------- */
+/* La persecución es solo del navegador y llega después de resolver el caso: no lleva nombres ni soluciones. */
+const CAZA = {
+  inicio: 'DO', meta: 'CA', energia: 3, orden: ['PU', 'LA', 'BO', 'DO', 'CO', 'EN', 'ES', 'CA'],
+  nodos: [
+    { id: 'PU', n: 'Puente', x: 50, y: 44, et: [0, -25, 'middle'] }, { id: 'LA', n: 'Laboratorio', x: 170, y: 44, et: [0, -25, 'middle'] },
+    { id: 'BO', n: 'Bodega', x: 290, y: 44, et: [0, -25, 'middle'] }, { id: 'DO', n: 'Dormitorios', x: 50, y: 138, et: [6, 36, 'middle'] },
+    { id: 'CO', n: 'Comedor', x: 170, y: 138, et: [-8, 36, 'end'] }, { id: 'EN', n: 'Enfermería', x: 290, y: 138, et: [26, -8, 'start'] },
+    { id: 'ES', n: 'Esclusa', x: 230, y: 216, et: [0, 34, 'middle'] }, { id: 'CA', n: 'Cápsula', x: 326, y: 216, et: [0, 34, 'middle'] },
+  ],
+  tramos: [['PU', 'LA'], ['LA', 'BO'], ['PU', 'DO'], ['LA', 'CO'], ['BO', 'CO'], ['BO', 'EN'], ['DO', 'CO', 'rota'], ['CO', 'EN'], ['CO', 'ES'], ['EN', 'ES'], ['EN', 'CA', 'rota'], ['ES', 'CA', 'rota']],
+};
+const idTramo = (a, b) => `${a}-${b}`;
+let caza = null, motores = false;
+function cazaNueva() { return { pos: CAZA.inicio, cerradas: [], energia: CAZA.energia, fin: null, espera: false }; }
+/* Su siguiente paso: camino con menos tramos hasta la cápsula; null si ya no hay ninguno. */
+function pasoIntrusa(pos, cerradas) {
+  const g = Object.fromEntries(CAZA.orden.map(n => [n, []]));
+  CAZA.tramos.forEach(([a, b]) => { if (!cerradas.includes(idTramo(a, b))) { g[a].push(b); g[b].push(a); } });
+  const d = { [CAZA.meta]: 0 }, cola = [CAZA.meta];
+  while (cola.length) { const u = cola.shift(); g[u].forEach(v => { if (d[v] === undefined) { d[v] = d[u] + 1; cola.push(v); } }); }
+  if (d[pos] === undefined) return null;
+  return g[pos].filter(v => d[v] === d[pos] - 1).sort((x, y) => CAZA.orden.indexOf(x) - CAZA.orden.indexOf(y))[0];
+}
+function cazaHtml(aTiempo) {
+  const pos = Object.fromEntries(CAZA.nodos.map(n => [n.id, n])), nombre = id => pos[id].n;
+  const tramos = CAZA.tramos.map(([a, b, rota]) => {
+    const A = pos[a], B = pos[b], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, id = idTramo(a, b), cerrada = caza.cerradas.includes(id);
+    const linea = `<line class="tramo${cerrada ? ' cerrada' : ''}" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"/>`;
+    if (rota) return `${linea}<g class="puerta rota" aria-hidden="true"><path d="M${mx} ${my - 10} L${mx + 10} ${my + 8} H${mx - 10} Z"/><text x="${mx}" y="${my + 6}" text-anchor="middle">!</text></g>`;
+    if (cerrada) return `${linea}<g class="puerta cerrada" aria-hidden="true"><rect x="${mx - 11}" y="${my - 11}" width="22" height="22" rx="4"/><path d="M${mx - 5} ${my - 5} l10 10 M${mx + 5} ${my - 5} l-10 10"/></g>`;
+    const libre = !caza.fin && caza.energia > 0;
+    return `${linea}<g class="puerta${libre ? ' libre' : ''}" ${libre ? `data-puerta="${id}" tabindex="0" role="button" aria-label="Cerrar la compuerta entre ${e(nombre(a))} y ${e(nombre(b))}"` : 'aria-hidden="true"'}>
+      <rect class="zona" x="${mx - 22}" y="${my - 22}" width="44" height="44"/><rect x="${mx - 11}" y="${my - 11}" width="22" height="22" rx="4"/><path d="M${mx} ${my - 6} v12"/></g>`;
+  }).join('');
+  const nodos = CAZA.nodos.map(n => `<g class="modulo quieto${n.id === CAZA.meta ? ' destino' : ''}${n.id === caza.pos ? ' intrusa' : ''}">
+    <circle cx="${n.x}" cy="${n.y}" r="19"/><text class="cod" x="${n.x}" y="${n.y + 4.5}" text-anchor="middle">${n.id}</text>
+    <text class="nom" x="${n.x + n.et[0]}" y="${n.y + n.et[1]}" text-anchor="${n.et[2]}">${e(n.n)}</text></g>`).join('');
+  const pilas = '■'.repeat(caza.energia) + '□'.repeat(CAZA.energia - caza.energia);
+  const estado = caza.fin === 'huida' ? 'Ha llegado a la cápsula antes de que le cerraras el paso.'
+    : `La saboteadora está en ${nombre(caza.pos)}. Energía: ${pilas} (${caza.energia} compuerta${caza.energia === 1 ? '' : 's'}).`;
+  return `<section class="kepler-final caza kepler-w" aria-label="Persecución por la estación">
+    <p class="rot k-radio-t">VERA · control de compuertas</p>
+    <p class="texto" style="margin:0">${aTiempo ? 'La saboteadora corre hacia la cápsula de escape con la muestra de hielo.' : 'La saboteadora corre hacia la única cápsula de escape. Si se la lleva, nadie sale de aquí.'}
+      A VERA le queda energía para cerrar ${CAZA.energia} compuertas. Toca una para cerrarla: después de cada cierre, ella avanza un módulo. Las marcadas con ⚠ están forzadas y no cierran.</p>
+    <svg viewBox="0 0 384 262" role="group" aria-label="Plano de la estación. ${e(estado)}">${tramos}${nodos}</svg>
+    <p class="lect-kepler" aria-live="polite">${e(estado)}</p>
+    ${caza.fin === 'huida' ? '<button class="primario" id="caza-otra" type="button">Intentarlo otra vez</button>' : ''}
+  </section>`;
+}
+function conectarCaza(d, aTiempo) {
+  const sec = document.querySelector('.kepler-final.caza');
+  if (!sec) return;
+  const pintar = () => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = keplerFinal(d, aTiempo);
+    document.querySelector('.kepler-final').replaceWith(tmp.firstElementChild);
+    conectarKeplerFinal(d, aTiempo);
+  };
+  const mover = () => {
+    const sig = pasoIntrusa(caza.pos, caza.cerradas);
+    if (sig === null) caza.fin = 'atrapada';
+    else { caza.pos = sig; if (sig === CAZA.meta) caza.fin = 'huida'; else if (pasoIntrusa(sig, caza.cerradas) === null) caza.fin = 'atrapada'; }
+    caza.espera = false;
+    pintar();
+    if (!caza.fin && caza.energia === 0) { caza.espera = true; setTimeout(mover, 650); }   // sin energía, ella sigue sola
+  };
+  const cerrar = id => {
+    if (caza.espera || caza.fin || caza.energia === 0) return;
+    caza.cerradas.push(id); caza.energia -= 1; caza.espera = true;
+    pintar();
+    setTimeout(mover, 650);
+  };
+  sec.querySelectorAll('[data-puerta]').forEach(g => {
+    g.addEventListener('click', () => cerrar(g.dataset.puerta));
+    g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); cerrar(g.dataset.puerta); } });
+  });
+  const otra = document.getElementById('caza-otra');
+  if (otra) otra.addEventListener('click', () => { caza = cazaNueva(); pintar(); });
+}
+
 const RADIO = {
   a_tiempo: ['Kepler-9, aquí Tierra. Os dábamos por perdidos.', 'Órbita estable. Buen trabajo, técnico de guardia.'],
   tarde: ['Cápsula de Kepler-9, aquí Tierra. Os tenemos en pantalla.', 'Seis a bordo y el registro a salvo. Venid a casa.'],
 };
 export function keplerFinal(d, aTiempo = true) {
+  if (!caza) caza = cazaNueva();
+  if (caza.fin !== 'atrapada') return cazaHtml(aTiempo);
+  const donde = CAZA.nodos.find(n => n.id === caza.pos).n;
   const estrellas = [[30, 24], [84, 60], [150, 18], [212, 44], [268, 22], [330, 58], [372, 30], [120, 96], [300, 104], [52, 118]]
     .map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i % 3 ? 1 : 1.6}" fill="#e3ecf7" opacity="${i % 2 ? 0.6 : 0.9}"/>`).join('');
   const radio = RADIO[aTiempo ? 'a_tiempo' : 'tarde'];
@@ -263,7 +374,8 @@ export function keplerFinal(d, aTiempo = true) {
       </g>
       <g class="k-capsula"><path d="M214 108 h16 l5 10 h-26 Z" fill="#e3ecf7"/><path d="M216 118 l6 12 l6 -12 Z" fill="#ffb54d"/></g>
     </svg>
-    ${motores ? '' : `<button class="primario" id="encender-motores" type="button">${boton}</button>`}
+    ${motores ? '' : `<p class="lect-kepler k-atrapada">Sin salida: atrapada en ${e(donde)}. La comandante va a por ella.</p>
+    <button class="primario" id="encender-motores" type="button">${boton}</button>`}
     <div id="historia" class="historia" ${motores ? '' : 'hidden'}>
       <p class="rot k-radio-t">Radio · canal de emergencia</p>
       ${radio.map(t => `<p class="k-radio">«${e(t)}»</p>`).join('')}
@@ -271,6 +383,7 @@ export function keplerFinal(d, aTiempo = true) {
   </section>`;
 }
 export function conectarKeplerFinal(d, aTiempo = true) {
+  conectarCaza(d, aTiempo);
   const b = document.getElementById('encender-motores');
   if (!b) return;
   b.addEventListener('click', () => {
@@ -286,4 +399,4 @@ export function conectarKeplerFinal(d, aTiempo = true) {
     if (h) h.classList.add('aparece');
   });
 }
-export function reiniciarKeplerFinal() { motores = false; }
+export function reiniciarKeplerFinal() { motores = false; caza = null; }

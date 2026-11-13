@@ -817,7 +817,7 @@ function fragmentosHtml(w) {
     <div class="frag-slots">${ranuras}</div></div>`;
 }
 function campoRespuesta(sala) {
-  if (sala.widget && (sala.widget.tipo === 'cartas' || sala.widget.tipo === 'accesos')) {
+  if (sala.widget && (sala.widget.tipo === 'cartas' || sala.widget.tipo === 'cajanegra')) {
     return `<select id="r" name="r" aria-label="Culpable">
       <option value="">${sala.widget.tipo === 'cartas' ? '— Elige a la informante —' : '— Elige un nombre —'}</option>
       ${sala.widget.sospechosos.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>`;
@@ -930,7 +930,7 @@ function comprobar() {
       const tipoW = estado.sala && estado.sala.widget && estado.sala.widget.tipo;
       const min = Math.round(r.penal_seg / 60);
       senal('fallo', msg, tipoW === 'ordenes' ? `Hora equivocada: +${min} min. Revisa la orden y la marea.`
-        : tipoW === 'accesos' ? `Acusación equivocada: +${min} min. Revisa las horas y los pasillos.`
+        : tipoW === 'cajanegra' ? `Acusación equivocada: +${min} min. Vuelve a mirar la caja negra.`
         : `Acusación equivocada: +${min} min. Revisa las frases.`);
     } else {
       senal('fallo', msg, 'No es esa respuesta. Prueba otra vez o pide una nota.');
