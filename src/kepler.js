@@ -65,7 +65,9 @@ function lecturaRuta(mapa, ruta) {
   if (!ruta.length) return 'Toca un módulo para empezar a trazar una ruta.';
   const nombre = id => mapa.nodos.find(n => n.id === id).n;
   const t = ruta.length - 1;
-  return `Ruta: ${ruta.map(nombre).join(' → ')}${t ? ` · ${t} tramo${t === 1 ? '' : 's'}` : ''}`;
+  // Suma de la ruta trazada: la cuenta no es el reto, el reto es dar con la ruta más rápida.
+  const total = ruta.reduce((s, id, i) => (i ? s + mapa.tramos.find(([p, q]) => (p === ruta[i - 1] && q === id) || (q === ruta[i - 1] && p === id))[2] : 0), 0);
+  return `Ruta: ${ruta.map(nombre).join(' → ')}${t ? ` · ${t} tramo${t === 1 ? '' : 's'} · ${total} ${mapa.unidad}` : ''}`;
 }
 function conectarPlano(caja, mapa, st, repintar) {
   const tocar = id => {
